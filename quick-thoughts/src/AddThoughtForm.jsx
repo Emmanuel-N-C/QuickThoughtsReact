@@ -27,8 +27,16 @@ const AddThoughtForm = () => {
         break;
 
       case 'Plan':
-        console.log('PLAN CREATION TRIGGER');
+        dispatch({
+          type: 'plans/addPlan',
+          payload: {
+            id: Date.now(),
+            title: text,
+            description: 'Created from main input',
+          },
+        });
         break;
+
 
       default:
         break;

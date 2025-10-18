@@ -16,8 +16,14 @@ const todosSlice = createSlice({
     removeTodo: (state, action) => {
       return state.filter(t => t.id !== action.payload);
     },
+    assignTodoToPlan: (state, action) => {
+      const { todoId, planId } = action.payload;
+      const todo = state.find(t => t.id === todoId);
+      if (todo) todo.planId = planId;
+    },
   },
 });
 
-export const { addTodo, toggleTodo, removeTodo } = todosSlice.actions;
+export const { addTodo, toggleTodo, removeTodo, assignTodoToPlan } =
+  todosSlice.actions;
 export default todosSlice.reducer;

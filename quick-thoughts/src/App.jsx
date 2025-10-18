@@ -3,6 +3,7 @@ import React from 'react';
 import AddThoughtForm from './AddThoughtForm';
 import ThoughtList from './Thought';
 import TodoList from './TodoList';
+import PlanList from './PlanList';
 
 const App = () => {
   return (
@@ -11,6 +12,7 @@ const App = () => {
       <AddThoughtForm />
       <ThoughtList />
       <TodoList />
+      <PlanList />
     </div>
   );
 };

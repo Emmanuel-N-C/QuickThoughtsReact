@@ -8,8 +8,7 @@ const thoughtsSlice = createSlice({
     addThought: (state, action) => {
       state.push({
         id: Date.now(),
-        text: action.payload.text,
-        category: action.payload.category || 'General',
+        text: action.payload,
         createdAt: new Date().toISOString(),
       });
     },
@@ -20,4 +19,15 @@ const thoughtsSlice = createSlice({
 });
 
 export const { addThought, removeThought } = thoughtsSlice.actions;
+
+export const addThoughtWithTimeout = (text, timeout = 15000) => (dispatch) => {
+  const id = Date.now();
+  dispatch(addThought(text));
+
+  // remove after 15 seconds
+  setTimeout(() => {
+    dispatch(removeThought(id));
+  }, timeout);
+};
+
 export default thoughtsSlice.reducer;

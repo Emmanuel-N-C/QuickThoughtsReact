@@ -1,39 +1,31 @@
+// src/AddThoughtForm.jsx
 import React, { useState } from 'react';
-import { generateId, getNewExpirationTime } from './utilities';
+import { useDispatch } from 'react-redux';
+import { addThoughtWithTimeout } from './redux/thoughtsSlice';
 
-export function AddThoughtForm({ addThought }) {
+const AddThoughtForm = () => {
   const [text, setText] = useState('');
+  const dispatch = useDispatch();
 
-  const handleTextChange = (event) => {
-    setText(event.target.value);
-  };
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (text.trim() === '') return;
 
-  const handleSubmit = (event) => {
-    event.preventDefault();
-
-    // Only add a thought if there's text
-    if (text.length > 0) {
-      const newThought = {
-        id: generateId(),
-        text: text,
-        expiresAt: getNewExpirationTime(),
-      };
-
-      addThought(newThought);
-      setText(''); // Clear input after submission
-    }
+    dispatch(addThoughtWithTimeout(text)); // dispatch to Redux
+    setText('');
   };
 
   return (
-    <form className="AddThoughtForm" onSubmit={handleSubmit}>
+    <form onSubmit={handleSubmit} className="add-thought-form">
       <input
         type="text"
-        aria-label="What's on your mind?"
-        placeholder="What's on your mind?"
         value={text}
-        onChange={handleTextChange}
+        placeholder="What's on your mind?"
+        onChange={(e) => setText(e.target.value)}
       />
-      <input type="submit" value="Add" />
+      <button type="submit">Add</button>
     </form>
   );
-}
+};
+
+export default AddThoughtForm;

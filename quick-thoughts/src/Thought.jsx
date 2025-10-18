@@ -7,15 +7,15 @@ const ThoughtList = () => {
   const thoughts = useSelector((state) => state.thoughts);
   const dispatch = useDispatch();
 
-  if (thoughts.length === 0) {
-    return <p>No thoughts yet!</p>;
-  }
+  if (thoughts.length === 0) return <p>No thoughts yet!</p>;
 
   return (
     <div className="thought-list">
       {thoughts.map((t) => (
         <div key={t.id} className="thought-item">
-          <p>{t.text}</p>
+          <p>
+            <strong>{t.category}</strong>: {t.text}
+          </p>
           <button onClick={() => dispatch(removeThought(t.id))}>×</button>
         </div>
       ))}

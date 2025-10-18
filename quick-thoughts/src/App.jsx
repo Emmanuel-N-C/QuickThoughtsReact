@@ -1,48 +1,16 @@
-import React, { useState } from 'react';
-import { AddThoughtForm } from './AddThoughtForm';
-import { Thought } from './Thought';
-import { generateId, getNewExpirationTime } from './utilities';
-import './App.css';
+// src/App.jsx
+import React from 'react';
+import AddThoughtForm from './AddThoughtForm';
+import ThoughtList from './Thought';
 
-export default function App() {
-  const [thoughts, setThoughts] = useState([
-    {
-      id: generateId(),
-      text: 'This is a place for your passing thoughts.',
-      expiresAt: getNewExpirationTime(),
-    },
-    {
-      id: generateId(),
-      text: "They'll be removed after 15 seconds.",
-      expiresAt: getNewExpirationTime(),
-    },
-  ]);
-
-  function addThought(thought) {
-    setThoughts((prev) => [thought, ...prev]);
-  }
-
-  function removeThought(thoughtIdToRemove) {
-    setThoughts((prev) => prev.filter((t) => t.id !== thoughtIdToRemove));
-  }
-
+const App = () => {
   return (
-    <div className="App">
-      <header>
-        <h1>Quick Thoughts</h1>
-      </header>
-      <main>
-        <AddThoughtForm addThought={addThought} />
-        <ul className="thoughts">
-          {thoughts.map((thought) => (
-            <Thought
-              key={thought.id}
-              thought={thought}
-              removeThought={removeThought}
-            />
-          ))}
-        </ul>
-      </main>
+    <div className="app">
+      <h1>💭 Quick Thoughts</h1>
+      <AddThoughtForm />
+      <ThoughtList />
     </div>
   );
-}
+};
+
+export default App;

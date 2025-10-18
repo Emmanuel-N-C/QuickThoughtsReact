@@ -1,30 +1,26 @@
-import React, { useEffect } from 'react';
+// src/Thought.jsx
+import React from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import { removeThought } from './redux/thoughtsSlice';
 
-export function Thought({ thought, removeThought }) {
-  useEffect(() => {
-    const timeRemaining = thought.expiresAt - Date.now();
+const ThoughtList = () => {
+  const thoughts = useSelector((state) => state.thoughts);
+  const dispatch = useDispatch();
 
-    const timeout = setTimeout(() => {
-      removeThought(thought.id);
-    }, timeRemaining);
-
-    return () => clearTimeout(timeout);
-  }, [thought]);
-
-  const handleRemoveClick = () => {
-    removeThought(thought.id);
-  };
+  if (thoughts.length === 0) {
+    return <p>No thoughts yet!</p>;
+  }
 
   return (
-    <li className="Thought">
-      <button
-        aria-label="Remove thought"
-        className="remove-button"
-        onClick={handleRemoveClick}
-      >
-        &times;
-      </button>
-      <div className="text">{thought.text}</div>
-    </li>
+    <div className="thought-list">
+      {thoughts.map((t) => (
+        <div key={t.id} className="thought-item">
+          <p>{t.text}</p>
+          <button onClick={() => dispatch(removeThought(t.id))}>×</button>
+        </div>
+      ))}
+    </div>
   );
-}
+};
+
+export default ThoughtList;

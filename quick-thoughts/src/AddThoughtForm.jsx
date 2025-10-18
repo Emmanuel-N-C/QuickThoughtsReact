@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { addThoughtWithTimeout, addThought } from './redux/thoughtsSlice';
+import { addTodo } from './redux/todosSlice';
 
 const AddThoughtForm = () => {
   const [text, setText] = useState('');
@@ -14,22 +15,18 @@ const AddThoughtForm = () => {
 
     switch (category) {
       case 'Random':
-        // Temporary thought (auto-deletes after 15 seconds)
         dispatch(addThoughtWithTimeout(text, category));
         break;
 
       case 'Idea':
-        // Persistent idea (stored in Redux)
-        dispatch(addThought({ text, category }));
+        dispatch(addThought({ id: Date.now(), text, category }));
         break;
 
       case 'To-Do':
-        // We'll later send this to todosSlice
-        console.log('TODO:', text);
+        dispatch(addTodo({ id: Date.now(), text }));
         break;
 
       case 'Plan':
-        // Will later trigger Plan creation modal
         console.log('PLAN CREATION TRIGGER');
         break;
 
@@ -58,7 +55,9 @@ const AddThoughtForm = () => {
         value={text}
         placeholder={
           category === 'Plan'
-            ? 'Enter plan title or description...'
+            ? 'Enter plan name...'
+            : category === 'To-Do'
+            ? 'Enter a task...'
             : "What's on your mind?"
         }
         onChange={(e) => setText(e.target.value)}

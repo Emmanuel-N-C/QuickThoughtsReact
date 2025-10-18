@@ -2,6 +2,7 @@
 import React from 'react';
 import AddThoughtForm from './AddThoughtForm';
 import ThoughtList from './Thought';
+import TodoList from './TodoList';
 
 const App = () => {
   return (
@@ -9,6 +10,7 @@ const App = () => {
       <h1>💭 Quick Thoughts</h1>
       <AddThoughtForm />
       <ThoughtList />
+      <TodoList />
     </div>
   );
 };

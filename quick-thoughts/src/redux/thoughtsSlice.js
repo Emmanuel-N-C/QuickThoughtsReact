@@ -6,28 +6,32 @@ const thoughtsSlice = createSlice({
   initialState: [],
   reducers: {
     addThought: (state, action) => {
+      const { id, text, category } = action.payload;
       state.push({
-        id: Date.now(),
-        text: action.payload,
+        id,
+        text,
+        category,
         createdAt: new Date().toISOString(),
       });
     },
     removeThought: (state, action) => {
-      return state.filter(t => t.id !== action.payload);
+      return state.filter((t) => t.id !== action.payload);
     },
   },
 });
 
 export const { addThought, removeThought } = thoughtsSlice.actions;
 
-export const addThoughtWithTimeout = (text, timeout = 15000) => (dispatch) => {
-  const id = Date.now();
-  dispatch(addThought(text));
+// ✅ FIXED: consistent id for add/remove
+export const addThoughtWithTimeout =
+  (text, category, timeout = 15000) =>
+  (dispatch) => {
+    const id = Date.now();
+    dispatch(addThought({ id, text, category }));
 
-  // remove after 15 seconds
-  setTimeout(() => {
-    dispatch(removeThought(id));
-  }, timeout);
-};
+    setTimeout(() => {
+      dispatch(removeThought(id));
+    }, timeout);
+  };
 
 export default thoughtsSlice.reducer;

@@ -10,7 +10,7 @@ export const saveState = (state) => {
   }
 };
 
-// ✅ Load Redux state from localStorage
+
 export const loadState = () => {
   try {
     const serializedState = localStorage.getItem('quickThoughtAppState');

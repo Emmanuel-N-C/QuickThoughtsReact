@@ -1,44 +1,67 @@
 // src/Thought.jsx
-import React from 'react';
-import { useSelector, useDispatch } from 'react-redux';
-import { removeThought } from './redux/thoughtsSlice';
+import React, { useEffect, useState } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import { removeThought, addThought } from "./redux/thoughtsSlice";
 
-const ThoughtList = ({ sortOrder = 'newest', filterCategory = null }) => {
+const ThoughtList = () => {
   const thoughts = useSelector((state) => state.thoughts);
   const dispatch = useDispatch();
+  const [fadingIds, setFadingIds] = useState([]);
 
-  // ✅ Filter thoughts by category (Random, Idea, etc.)
-  let filteredThoughts = filterCategory
-    ? thoughts.filter((t) => t.category === filterCategory)
-    : thoughts;
+  useEffect(() => {
+    // Trigger fade-out 2 seconds before removal (13s mark)
+    const timers = thoughts.map((t) => {
+      if (t.category === "Random") {
+        return setTimeout(() => setFadingIds((prev) => [...prev, t.id]), 13000);
+      }
+      return null;
+    });
 
-  // ✅ Sort by creation time (newest or oldest)
-  filteredThoughts = [...filteredThoughts].sort((a, b) =>
-    sortOrder === 'newest'
-      ? new Date(b.createdAt) - new Date(a.createdAt)
-      : new Date(a.createdAt) - new Date(b.createdAt)
-  );
+    return () => timers.forEach((timer) => clearTimeout(timer));
+  }, [thoughts]);
 
-  if (filteredThoughts.length === 0) {
-    return <p>No {filterCategory ? filterCategory : ''} thoughts yet!</p>;
+  if (thoughts.length === 0) {
+    return <p className="no-thoughts">No thoughts yet!</p>;
   }
 
   return (
     <div className="thought-list">
-      <h2>
-        {filterCategory
-          ? filterCategory === 'Random'
-            ? '💭 Random Thoughts'
-            : filterCategory === 'Idea'
-            ? '💡 Ideas'
-            : `${filterCategory}s`
-          : '💭 Thoughts & Ideas'}
-      </h2>
+      {thoughts.map((t) => (
+        <div
+          key={t.id}
+          className={`thought-item ${
+            fadingIds.includes(t.id) ? "fade-out" : ""
+          }`}
+        >
+          <p>
+            <strong>{t.category}:</strong> {t.text}
+          </p>
 
-      {filteredThoughts.map((t) => (
-        <div key={t.id} className="thought-item">
-          <p>{t.text}</p>
-          <button onClick={() => dispatch(removeThought(t.id))}>×</button>
+          {t.category === "Random" && (
+            <div className="thought-actions">
+              <button
+                onClick={() =>
+                  dispatch(addThought({ id: Date.now(), text: t.text, category: "Idea" }))
+                }
+              >
+                💡 Save as Idea
+              </button>
+              <button
+                onClick={() =>
+                  dispatch(addThought({ id: Date.now(), text: t.text, category: "To-Do" }))
+                }
+              >
+                📝 Save as To-Do
+              </button>
+            </div>
+          )}
+
+          <button
+            className="delete-btn"
+            onClick={() => dispatch(removeThought(t.id))}
+          >
+            ×
+          </button>
         </div>
       ))}
     </div>

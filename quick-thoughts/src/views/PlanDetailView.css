@@ -1,0 +1,116 @@
+.plan-detail-container {
+  padding: 30px;
+  max-width: 800px;
+  margin: 0 auto;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08);
+}
+
+.plan-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.plan-header h2 {
+  font-size: 1.8rem;
+  color: #333;
+}
+
+.back-btn {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.back-btn:hover {
+  background: #0056b3;
+}
+
+.plan-desc {
+  color: #666;
+  margin-bottom: 20px;
+  font-size: 1rem;
+  text-align: left;
+}
+
+.plan-todo-section {
+  margin-top: 20px;
+}
+
+.add-task-form {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.add-task-form input {
+  flex: 1;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  font-size: 0.95rem;
+}
+
+.add-task-form button {
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  cursor: pointer;
+}
+
+.add-task-form button:hover {
+  background: #0056b3;
+}
+
+/* Todo list inside plan */
+.plan-todo-list {
+  list-style: none;
+  padding: 0;
+}
+
+.todo-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f8f9fa;
+  padding: 10px;
+  margin-bottom: 8px;
+  border-radius: 10px;
+  transition: all 0.2s ease;
+}
+
+.todo-item.completed {
+  background: #e8ffe8;
+}
+
+.todo-item.completed span {
+  text-decoration: line-through;
+  color: #777;
+}
+
+.todo-item:hover {
+  background: #eef3ff;
+}
+
+.delete-btn {
+  background: none;
+  border: none;
+  color: #dc3545;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.empty-text {
+  color: #aaa;
+  text-align: center;
+  margin-top: 20px;
+}

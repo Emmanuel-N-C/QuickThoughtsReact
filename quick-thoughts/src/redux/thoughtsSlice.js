@@ -6,32 +6,45 @@ const thoughtsSlice = createSlice({
   initialState: [],
   reducers: {
     addThought: (state, action) => {
-      const { id, text, category } = action.payload;
       state.push({
-        id,
-        text,
-        category,
+        id: action.payload.id || Date.now(),
+        text: action.payload.text,
+        category: action.payload.category || 'Random',
         createdAt: new Date().toISOString(),
       });
     },
     removeThought: (state, action) => {
       return state.filter((t) => t.id !== action.payload);
     },
+    convertThought: (state, action) => {
+      const { id, newCategory } = action.payload;
+      const thought = state.find((t) => t.id === id);
+      if (thought) thought.category = newCategory;
+    },
   },
 });
 
-export const { addThought, removeThought } = thoughtsSlice.actions;
+export const { addThought, removeThought, convertThought } = thoughtsSlice.actions;
 
-// ✅ FIXED: consistent id for add/remove
-export const addThoughtWithTimeout =
-  (text, category, timeout = 15000) =>
-  (dispatch) => {
-    const id = Date.now();
-    dispatch(addThought({ id, text, category }));
+// Enhanced thunk for 15s auto-removal
+export const addThoughtWithTimeout = (text, category) => (dispatch) => {
+  const id = Date.now();
+  dispatch(addThought({ id, text, category }));
 
-    setTimeout(() => {
-      dispatch(removeThought(id));
-    }, timeout);
-  };
+  const timer = setTimeout(() => {
+    dispatch(removeThought(id));
+  }, 15000);
+
+  // Store timer reference globally (so we can cancel later)
+  if (!window.randomThoughtTimers) window.randomThoughtTimers = {};
+  window.randomThoughtTimers[id] = timer;
+};
+
+export const cancelThoughtTimer = (id) => {
+  if (window.randomThoughtTimers?.[id]) {
+    clearTimeout(window.randomThoughtTimers[id]);
+    delete window.randomThoughtTimers[id];
+  }
+};
 
 export default thoughtsSlice.reducer;

@@ -4,22 +4,21 @@ import { useDispatch } from 'react-redux';
 import { addThoughtWithTimeout, addThought } from './redux/thoughtsSlice';
 import { addTodo } from './redux/todosSlice';
 
-const AddThoughtForm = () => {
+const AddThoughtForm = ({ selectedCategory, setSelectedCategory }) => {
   const [text, setText] = useState('');
-  const [category, setCategory] = useState('Random');
   const dispatch = useDispatch();
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (text.trim() === '') return;
 
-    switch (category) {
+    switch (selectedCategory) {
       case 'Random':
-        dispatch(addThoughtWithTimeout(text, category));
+        dispatch(addThoughtWithTimeout(text, selectedCategory));
         break;
 
       case 'Idea':
-        dispatch(addThought({ id: Date.now(), text, category }));
+        dispatch(addThought({ id: Date.now(), text, category: selectedCategory }));
         break;
 
       case 'To-Do':
@@ -37,7 +36,6 @@ const AddThoughtForm = () => {
         });
         break;
 
-
       default:
         break;
     }
@@ -46,11 +44,14 @@ const AddThoughtForm = () => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="add-thought-form">
+    <form
+      onSubmit={handleSubmit}
+      className="d-flex flex-column flex-sm-row align-items-center gap-2"
+    >
       <select
-        value={category}
-        onChange={(e) => setCategory(e.target.value)}
-        className="category-select"
+        value={selectedCategory}
+        onChange={(e) => setSelectedCategory(e.target.value)}
+        className="form-select w-auto"
       >
         <option value="Random">💭 Random Thought</option>
         <option value="Idea">💡 Idea</option>
@@ -62,15 +63,19 @@ const AddThoughtForm = () => {
         type="text"
         value={text}
         placeholder={
-          category === 'Plan'
+          selectedCategory === 'Plan'
             ? 'Enter plan name...'
-            : category === 'To-Do'
+            : selectedCategory === 'To-Do'
             ? 'Enter a task...'
             : "What's on your mind?"
         }
         onChange={(e) => setText(e.target.value)}
+        className="form-control flex-grow-1"
       />
-      <button type="submit">Add</button>
+
+      <button type="submit" className="btn btn-primary">
+        Add
+      </button>
     </form>
   );
 };

@@ -1,64 +1,48 @@
-// src/App.jsx
-import React, { useState } from 'react';
-import AddThoughtForm from './AddThoughtForm';
-import ThoughtList from './Thought';
-import TodoList from './TodoList';
-import PlanList from './PlanList';
-import FilterBar from './FilterBar';
-import { clearState } from './redux/localStorage';
+import React, { useState } from "react";
+import Sidebar from "./Sidebar";
+import Overview from "./views/Overview";
+import ListView from "./views/ListView";
+import BoardView from "./views/BoardView";
+import "./App.css";
 
 const App = () => {
-  const [activeFilter, setActiveFilter] = useState('All');
-  const [sortOrder, setSortOrder] = useState('newest');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [currentView, setCurrentView] = useState("overview");
 
-  const handleClearData = () => {
-    if (confirm('🧹 Are you sure you want to clear all saved data?')) {
-      clearState();
-      window.location.reload(); // refresh to reset Redux store
+  // Render the current active page
+  const renderView = () => {
+    switch (currentView) {
+      case "overview":
+        return <Overview />;
+      case "list":
+        return <ListView />;
+      case "board":
+        return <BoardView />;
+      default:
+        return null;
     }
   };
 
   return (
-    <div className="app">
-      <h1>💭 Quick Thoughts</h1>
+    <div className="app-container">
+      {/* Toggle Sidebar Button */}
+      <button
+        className="toggle-sidebar-btn"
+        onClick={() => setIsSidebarOpen(true)}
+      >
+        📋 Menu
+      </button>
 
-      {/* Input form */}
-      <AddThoughtForm />
-
-      {/* Filter / Sort bar */}
-      <FilterBar
-        activeFilter={activeFilter}
-        setActiveFilter={setActiveFilter}
-        sortOrder={sortOrder}
-        setSortOrder={setSortOrder}
+      {/* Sidebar */}
+      <Sidebar
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+        setCurrentView={setCurrentView}
       />
 
-      {/* Conditional rendering based on selected filter */}
-      {activeFilter === 'All' && (
-        <>
-          <ThoughtList sortOrder={sortOrder} />
-          <TodoList sortOrder={sortOrder} />
-          <PlanList />
-        </>
-      )}
-
-      {activeFilter === 'Random' && (
-        <ThoughtList sortOrder={sortOrder} filterCategory="Random" />
-      )}
-
-      {activeFilter === 'Idea' && (
-        <ThoughtList sortOrder={sortOrder} filterCategory="Idea" />
-      )}
-
-      {activeFilter === 'To-Do' && <TodoList sortOrder={sortOrder} />}
-
-      {activeFilter === 'Plan' && <PlanList />}
-
-      {/* Clear all data button */}
-      <div className="clear-data-section">
-        <button onClick={handleClearData} className="clear-btn">
-          🧹 Clear All Data
-        </button>
+      {/* Main Content (no header or input below) */}
+      <div className="main-content">
+        {renderView()}
       </div>
     </div>
   );

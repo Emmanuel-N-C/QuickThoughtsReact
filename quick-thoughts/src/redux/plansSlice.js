@@ -1,35 +1,62 @@
-// src/redux/plansSlice.js
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice, nanoid } from "@reduxjs/toolkit";
 
 const plansSlice = createSlice({
-  name: 'plans',
+  name: "plans",
   initialState: [],
   reducers: {
-    addPlan: (state, action) => {
-      const { id, title, description } = action.payload;
-      state.push({ id, title, description, todos: [] });
+    addPlan: {
+      reducer(state, action) {
+        state.push(action.payload);
+      },
+      prepare(title, description = "") {
+        return {
+          payload: {
+            id: nanoid(),
+            title,
+            description,
+            todos: [],
+          },
+        };
+      },
     },
-    removePlan: (state, action) => {
-      return state.filter(p => p.id !== action.payload);
+    removePlan(state, action) {
+      return state.filter((plan) => plan.id !== action.payload);
     },
-    addTodoToPlan: (state, action) => {
-      const { planId, todo } = action.payload;
-      const plan = state.find(p => p.id === planId);
-      if (plan) plan.todos.push(todo);
-    },
-    togglePlanTodo: (state, action) => {
-      const { planId, todoId } = action.payload;
-      const plan = state.find(p => p.id === planId);
+    addTodoToPlan(state, action) {
+      const { planId, text } = action.payload;
+      const plan = state.find((p) => p.id === planId);
       if (plan) {
-        const todo = plan.todos.find(t => t.id === todoId);
-        if (todo) todo.done = !todo.done;
+        plan.todos.push({
+          id: String(nanoid()), // ✅ always string
+          text,
+          completed: false,
+          status: "todo", // ✅ default for board
+        });
       }
     },
-    removePlanTodo: (state, action) => {
-      const { planId, todoId } = action.payload;
-      const plan = state.find(p => p.id === planId);
+    updateTodoStatus(state, action) {
+      const { planId, todoId, status } = action.payload;
+      const plan = state.find((p) => p.id === planId);
       if (plan) {
-        plan.todos = plan.todos.filter(t => t.id !== todoId);
+        const todo = plan.todos.find((t) => String(t.id) === String(todoId));
+        if (todo) todo.status = status;
+      }
+    },
+    toggleTodoInPlan(state, action) {
+      const { planId, todoId } = action.payload;
+      const plan = state.find((p) => p.id === planId);
+      if (plan) {
+        const todo = plan.todos.find((t) => String(t.id) === String(todoId));
+        if (todo) todo.completed = !todo.completed;
+      }
+    },
+    removeTodoFromPlan(state, action) {
+      const { planId, todoId } = action.payload;
+      const plan = state.find((p) => p.id === planId);
+      if (plan) {
+        plan.todos = plan.todos.filter(
+          (t) => String(t.id) !== String(todoId)
+        );
       }
     },
   },
@@ -39,8 +66,9 @@ export const {
   addPlan,
   removePlan,
   addTodoToPlan,
-  togglePlanTodo,
-  removePlanTodo,
+  updateTodoStatus,
+  toggleTodoInPlan,
+  removeTodoFromPlan,
 } = plansSlice.actions;
 
 export default plansSlice.reducer;

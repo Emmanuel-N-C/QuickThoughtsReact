@@ -22,6 +22,15 @@ const plansSlice = createSlice({
     removePlan(state, action) {
       return state.filter((plan) => plan.id !== action.payload);
     },
+    // ✅ NEW: Edit plan
+    editPlan(state, action) {
+      const { id, title, description } = action.payload;
+      const plan = state.find((p) => p.id === id);
+      if (plan) {
+        if (title !== undefined) plan.title = title;
+        if (description !== undefined) plan.description = description;
+      }
+    },
     addTodoToPlan(state, action) {
       const { planId, text } = action.payload;
       const plan = state.find((p) => p.id === planId);
@@ -34,6 +43,15 @@ const plansSlice = createSlice({
         });
       }
     },
+    // ✅ NEW: Edit todo in plan
+    editTodoInPlan(state, action) {
+      const { planId, todoId, text } = action.payload;
+      const plan = state.find((p) => p.id === planId);
+      if (plan) {
+        const todo = plan.todos.find((t) => String(t.id) === String(todoId));
+        if (todo && text !== undefined) todo.text = text;
+      }
+    },
     updateTodoStatus(state, action) {
       const { planId, todoId, status } = action.payload;
       const plan = state.find((p) => p.id === planId);
@@ -41,8 +59,7 @@ const plansSlice = createSlice({
         const todo = plan.todos.find((t) => String(t.id) === String(todoId));
         if (todo) {
           todo.status = status;
-          // ✅ Sync completed field with status
-          todo.completed = status === "done";
+          todo.completed = status === "done"; //  Sync completed with status
         }
       }
     },
@@ -53,8 +70,7 @@ const plansSlice = createSlice({
         const todo = plan.todos.find((t) => String(t.id) === String(todoId));
         if (todo) {
           todo.completed = !todo.completed;
-          // ✅ Sync status field with completed
-          todo.status = todo.completed ? "done" : "todo";
+          todo.status = todo.completed ? "done" : "todo"; //  Sync status with completed
         }
       }
     },
@@ -73,7 +89,9 @@ const plansSlice = createSlice({
 export const {
   addPlan,
   removePlan,
+  editPlan, 
   addTodoToPlan,
+  editTodoInPlan, 
   updateTodoStatus,
   toggleTodoInPlan,
   removeTodoFromPlan,

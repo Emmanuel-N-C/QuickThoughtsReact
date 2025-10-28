@@ -2,6 +2,7 @@ import React, { useState, useMemo } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { addTodoToPlan, updateTodoStatus } from "../redux/plansSlice";
+import toast from 'react-hot-toast';
 import "./BoardView.css";
 
 const BoardView = () => {
@@ -12,6 +13,7 @@ const BoardView = () => {
     plans.length > 0 ? plans[0].id : null
   );
   const [newTask, setNewTask] = useState("");
+  const [hoveredPlanId, setHoveredPlanId] = useState(null);
 
   const selectedPlan = useMemo(
     () => plans.find((p) => p.id === selectedPlanId),
@@ -38,21 +40,31 @@ const BoardView = () => {
     if (!newTask.trim() || !selectedPlanId) return;
     dispatch(addTodoToPlan({ planId: selectedPlanId, text: newTask }));
     setNewTask("");
+    toast.success("✅ Task added to plan!");
   };
 
   const onDragEnd = (result) => {
     if (!result.destination) return;
 
-    const { draggableId, destination } = result;
+    const { draggableId, destination, source } = result;
     const newStatus = destination.droppableId;
 
-    dispatch(
-      updateTodoStatus({
-        planId: selectedPlanId,
-        todoId: draggableId,
-        status: newStatus,
-      })
-    );
+    // Only show toast if status actually changed
+    if (source.droppableId !== newStatus) {
+      dispatch(
+        updateTodoStatus({
+          planId: selectedPlanId,
+          todoId: draggableId,
+          status: newStatus,
+        })
+      );
+
+      if (newStatus === "done") {
+        toast.success("✅ Task completed!");
+      } else if (newStatus === "inprogress") {
+        toast("🚧 Task moved to In Progress");
+      }
+    }
   };
 
   return (
@@ -60,18 +72,71 @@ const BoardView = () => {
       {/* Sidebar */}
       <aside className="board-sidebar">
         <h3>📅 My Plans</h3>
-        {plans.length === 0 && <p className="empty-plan">No plans yet</p>}
-        {plans.map((plan) => (
-          <div
-            key={plan.id}
-            className={`plan-item ${
-              selectedPlanId === plan.id ? "active" : ""
-            }`}
-            onClick={() => setSelectedPlanId(plan.id)}
-          >
-            {plan.title}
+        {plans.length === 0 ? (
+          <div style={{
+            padding: "20px",
+            textAlign: "center",
+            color: "#888",
+            background: "#f8f9fa",
+            borderRadius: "8px",
+            margin: "10px 0"
+          }}>
+            <p style={{ fontSize: "32px", margin: "0 0 8px 0" }}>📋</p>
+            <p style={{ margin: 0, fontSize: "14px" }}>No plans yet</p>
           </div>
-        ))}
+        ) : (
+          plans.map((plan) => (
+            <div
+              key={plan.id}
+              className={`plan-item ${
+                selectedPlanId === plan.id ? "active" : ""
+              }`}
+              onClick={() => setSelectedPlanId(plan.id)}
+              onMouseEnter={() => setHoveredPlanId(plan.id)}
+              onMouseLeave={() => setHoveredPlanId(null)}
+              style={{ position: "relative" }}
+            >
+              {plan.title}
+              
+              {/* Tooltip for plan description */}
+              {hoveredPlanId === plan.id && plan.description && (
+                <div
+                  style={{
+                    position: "absolute",
+                    left: "110%",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    background: "#333",
+                    color: "white",
+                    padding: "8px 12px",
+                    borderRadius: "6px",
+                    fontSize: "12px",
+                    whiteSpace: "nowrap",
+                    maxWidth: "200px",
+                    zIndex: 1000,
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+                    pointerEvents: "none"
+                  }}
+                >
+                  {plan.description}
+                  <div
+                    style={{
+                      position: "absolute",
+                      right: "100%",
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      width: 0,
+                      height: 0,
+                      borderTop: "6px solid transparent",
+                      borderBottom: "6px solid transparent",
+                      borderRight: "6px solid #333"
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+          ))
+        )}
       </aside>
 
       {/* Main Board */}
@@ -81,7 +146,18 @@ const BoardView = () => {
 
         {selectedPlan ? (
           <>
-            <h3 className="plan-title">{selectedPlan.title}</h3>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "20px" }}>
+              <h3 className="plan-title" style={{ margin: 0 }}>{selectedPlan.title}</h3>
+              {selectedPlan.description && (
+                <span style={{
+                  fontSize: "12px",
+                  color: "#666",
+                  fontStyle: "italic"
+                }}>
+                  — {selectedPlan.description}
+                </span>
+              )}
+            </div>
 
             <div className="add-task-board">
               <input
@@ -89,6 +165,7 @@ const BoardView = () => {
                 placeholder="Add new task..."
                 value={newTask}
                 onChange={(e) => setNewTask(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleAddTask()}
               />
               <button onClick={handleAddTask}>Add</button>
             </div>
@@ -100,11 +177,14 @@ const BoardView = () => {
 
                   return (
                     <Droppable key={status} droppableId={status}>
-                      {(provided) => (
+                      {(provided, snapshot) => (
                         <div
                           className="board-column"
                           ref={provided.innerRef}
                           {...provided.droppableProps}
+                          style={{
+                            background: snapshot.isDraggingOver ? "#f0f8ff" : "#f8f9fa"
+                          }}
                         >
                           <h4>
                             {status === "todo"
@@ -114,13 +194,27 @@ const BoardView = () => {
                               : `✅ Done (${list.length})`}
                           </h4>
 
+                          {list.length === 0 && (
+                            <div style={{
+                              padding: "20px",
+                              textAlign: "center",
+                              color: "#ccc",
+                              fontSize: "14px",
+                              border: "2px dashed #ddd",
+                              borderRadius: "8px",
+                              margin: "10px 0"
+                            }}>
+                              Drop tasks here
+                            </div>
+                          )}
+
                           {list.map((todo, index) => (
                             <Draggable
                               key={String(todo.id)}
                               draggableId={String(todo.id)}
                               index={index}
                             >
-                              {(provided) => (
+                              {(provided, snapshot) => (
                                 <div
                                   className="task-card"
                                   ref={provided.innerRef}
@@ -128,7 +222,7 @@ const BoardView = () => {
                                   {...provided.dragHandleProps}
                                   style={{
                                     ...provided.draggableProps.style,
-                                    // ✅ Add visual styling for completed tasks
+                                    opacity: snapshot.isDragging ? 0.8 : 1,
                                     ...(status === "done" && {
                                       textDecoration: "line-through",
                                       opacity: 0.7,
@@ -138,7 +232,6 @@ const BoardView = () => {
                                     })
                                   }}
                                 >
-                                  {/* ✅ Add checkmark for done tasks */}
                                   {status === "done" && (
                                     <span style={{ marginRight: "8px", fontSize: "16px" }}>
                                       ✓
@@ -160,7 +253,18 @@ const BoardView = () => {
             </DragDropContext>
           </>
         ) : (
-          <p className="empty-plan">Select a plan to get started!</p>
+          <div style={{
+            padding: "60px 40px",
+            textAlign: "center",
+            color: "#888",
+            background: "#f8f9fa",
+            borderRadius: "12px",
+            margin: "20px 0"
+          }}>
+            <p style={{ fontSize: "48px", margin: "0 0 16px 0" }}>📋</p>
+            <p style={{ fontWeight: "bold", fontSize: "20px", margin: "0 0 8px 0" }}>No plan selected</p>
+            <p style={{ fontSize: "14px", color: "#666" }}>Create a plan from Overview or List View to get started!</p>
+          </div>
         )}
       </main>
     </div>

@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { addTodoToPlan, toggleTodoInPlan, removeTodoFromPlan } from "../redux/plansSlice";
-import { removeTodo } from "../redux/todosSlice"; // ✅ Import removeTodo instead of assignTodoToPlan
+import toast from 'react-hot-toast';
+import { addTodoToPlan, toggleTodoInPlan, removeTodoFromPlan, editTodoInPlan } from "../redux/plansSlice";
+import { removeTodo } from "../redux/todosSlice";
 import "./PlanDetailView.css";
 
 const PlanDetailView = ({ planId, onBack }) => {
@@ -16,6 +17,20 @@ const PlanDetailView = ({ planId, onBack }) => {
 
   const [newTask, setNewTask] = useState("");
   const [showExistingTodos, setShowExistingTodos] = useState(false);
+  const [editingTodoId, setEditingTodoId] = useState(null);
+  const [editTodoText, setEditTodoText] = useState("");
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') {
+        handleCancelEditTodo();
+        setShowExistingTodos(false);
+      }
+    };
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, []);
 
   if (!plan) {
     return (
@@ -32,14 +47,42 @@ const PlanDetailView = ({ planId, onBack }) => {
     if (newTask.trim()) {
       dispatch(addTodoToPlan({ planId, text: newTask }));
       setNewTask("");
+      toast.success("✅ Task added to plan!");
     }
   };
 
   const handleAddExistingTodo = (todoId, todoText) => {
     // Add to plan's internal todos
     dispatch(addTodoToPlan({ planId, text: todoText }));
-    // ✅ Remove from global todo list (since it's now in the plan)
+    // Remove from global todo list (since it's now in the plan)
     dispatch(removeTodo(todoId));
+    toast.success("✅ To-do moved to plan!");
+  };
+
+  const handleEditTodo = (todo) => {
+    setEditingTodoId(todo.id);
+    setEditTodoText(todo.text);
+  };
+
+  const handleSaveEditTodo = (todoId) => {
+    if (editTodoText.trim()) {
+      dispatch(editTodoInPlan({ planId, todoId, text: editTodoText }));
+      setEditingTodoId(null);
+      setEditTodoText("");
+      toast.success("✏️ Task updated!");
+    }
+  };
+
+  const handleCancelEditTodo = () => {
+    setEditingTodoId(null);
+    setEditTodoText("");
+  };
+
+  const handleDeleteWithConfirm = (todoId) => {
+    if (window.confirm("Are you sure you want to delete this task?")) {
+      dispatch(removeTodoFromPlan({ planId, todoId }));
+      toast.success("🗑️ Task deleted!");
+    }
   };
 
   return (
@@ -63,6 +106,7 @@ const PlanDetailView = ({ planId, onBack }) => {
             placeholder="Add a new task..."
             value={newTask}
             onChange={(e) => setNewTask(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && handleAddTask()}
           />
           <button onClick={handleAddTask}>Add New</button>
         </div>
@@ -143,29 +187,108 @@ const PlanDetailView = ({ planId, onBack }) => {
           <ul className="plan-todo-list">
             {plan.todos.map((todo) => (
               <li key={todo.id} className={`todo-item ${todo.completed ? "completed" : ""}`}>
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={todo.completed}
-                    onChange={() =>
-                      dispatch(toggleTodoInPlan({ planId, todoId: todo.id }))
-                    }
-                  />
-                  <span>{todo.text}</span>
-                </label>
-                <button
-                  className="delete-btn"
-                  onClick={() =>
-                    dispatch(removeTodoFromPlan({ planId, todoId: todo.id }))
-                  }
-                >
-                  ✖
-                </button>
+                {/* Edit mode or normal mode */}
+                {editingTodoId === todo.id ? (
+                  // EDIT MODE
+                  <div style={{ display: "flex", gap: "8px", alignItems: "center", flex: 1 }}>
+                    <input
+                      type="text"
+                      value={editTodoText}
+                      onChange={(e) => setEditTodoText(e.target.value)}
+                      autoFocus
+                      style={{
+                        flex: 1,
+                        padding: "6px",
+                        borderRadius: "4px",
+                        border: "2px solid #007bff"
+                      }}
+                    />
+                    <button
+                      onClick={() => handleSaveEditTodo(todo.id)}
+                      style={{
+                        background: "#28a745",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "4px",
+                        padding: "6px 12px",
+                        cursor: "pointer"
+                      }}
+                    >
+                      ✓
+                    </button>
+                    <button
+                      onClick={handleCancelEditTodo}
+                      style={{
+                        background: "#6c757d",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "4px",
+                        padding: "6px 12px",
+                        cursor: "pointer"
+                      }}
+                    >
+                      ✖
+                    </button>
+                  </div>
+                ) : (
+                  // NORMAL MODE
+                  <>
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={todo.completed}
+                        onChange={() => {
+                          dispatch(toggleTodoInPlan({ planId, todoId: todo.id }));
+                          if (!todo.completed) {
+                            toast.success("✅ Task completed!");
+                          }
+                        }}
+                      />
+                      <span>{todo.text}</span>
+                    </label>
+                    <div style={{ display: "flex", gap: "4px" }}>
+                      <button
+                        onClick={() => handleEditTodo(todo)}
+                        style={{
+                          background: "#007bff",
+                          color: "white",
+                          border: "none",
+                          borderRadius: "4px",
+                          padding: "4px 8px",
+                          cursor: "pointer",
+                          fontSize: "14px"
+                        }}
+                        title="Edit"
+                      >
+                        ✏️
+                      </button>
+                      <button
+                        className="delete-btn"
+                        onClick={() => handleDeleteWithConfirm(todo.id)}
+                      >
+                        ✖
+                      </button>
+                    </div>
+                  </>
+                )}
               </li>
             ))}
           </ul>
         ) : (
-          <p className="empty-text">No tasks yet. Start by adding one!</p>
+          <div style={{
+            padding: "40px 20px",
+            textAlign: "center",
+            color: "#888",
+            background: "#f8f9fa",
+            borderRadius: "8px",
+            border: "2px dashed #ddd"
+          }}>
+            <p style={{ fontSize: "32px", margin: "0 0 8px 0" }}>📝</p>
+            <p style={{ margin: 0 }}>No tasks yet</p>
+            <p style={{ fontSize: "12px", marginTop: "8px", color: "#999" }}>
+              Start by adding a new task or importing from your to-do list!
+            </p>
+          </div>
         )}
       </div>
     </div>

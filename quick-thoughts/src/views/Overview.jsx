@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
+import toast from 'react-hot-toast';
 import { addThoughtWithTimeout, convertThought, removeThought } from "../redux/thoughtsSlice";
 import { addTodo } from "../redux/todosSlice";
 import { addPlan } from "../redux/plansSlice";
@@ -15,7 +16,7 @@ const Overview = ({ setCurrentView, setListFilter }) => {
 
   const [category, setCategory] = useState("Random Thought");
   const [text, setText] = useState("");
-  const [description, setDescription] = useState(""); // ✅ New state for plan description
+  const [description, setDescription] = useState("");
 
   // Navigate to list view with specific filter
   const handleCardClick = (filterType) => {
@@ -25,7 +26,7 @@ const Overview = ({ setCurrentView, setListFilter }) => {
 
   // Handle button click - just change category, don't navigate
   const handleButtonClick = (e, newCategory) => {
-    e.stopPropagation(); // Prevent card click from firing
+    e.stopPropagation();
     setCategory(newCategory);
   };
 
@@ -37,18 +38,25 @@ const Overview = ({ setCurrentView, setListFilter }) => {
     // Route to appropriate action based on category
     if (category === "Idea" || category === "Random Thought") {
       dispatch(addThoughtWithTimeout(text, category));
+      if (category === "Idea") {
+        toast.success("💡 Idea added!");
+      } else {
+        toast.success("💭 Random thought added! (Disappears in 15s)");
+      }
     } else if (category === "To-Do") {
       dispatch(addTodo({ 
         id: Date.now(), 
         text, 
         completed: false 
       }));
+      toast.success("✅ To-do added!");
     } else if (category === "Plan") {
-      dispatch(addPlan(text, description)); // Pass both title and description
+      dispatch(addPlan(text, description));
+      toast.success("📅 Plan created!");
     }
 
     setText("");
-    setDescription(""); // Clear description after adding
+    setDescription("");
   };
 
   return (
@@ -139,9 +147,7 @@ const Overview = ({ setCurrentView, setListFilter }) => {
           <option>Plan</option>
         </select>
         
-        {/* ✅ Show different inputs based on category */}
         {category === "Plan" ? (
-          // Plan-specific inputs (title + description)
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', flex: 1 }}>
             <input
               type="text"
@@ -159,7 +165,6 @@ const Overview = ({ setCurrentView, setListFilter }) => {
             />
           </div>
         ) : (
-          // Default single input for other categories
           <input
             type="text"
             placeholder={`Add a new ${category.toLowerCase()}...`}
@@ -188,7 +193,10 @@ const Overview = ({ setCurrentView, setListFilter }) => {
                   <span className="thought-text">{t.text}</span>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <button
-                      onClick={() => dispatch(convertThought({ id: t.id, newCategory: "Idea" }))}
+                      onClick={() => {
+                        dispatch(convertThought({ id: t.id, newCategory: "Idea" }));
+                        toast.success("💡 Converted to Idea!");
+                      }}
                       style={{
                         background: '#ffd700',
                         border: 'none',
@@ -202,7 +210,10 @@ const Overview = ({ setCurrentView, setListFilter }) => {
                       💡
                     </button>
                     <button
-                      onClick={() => dispatch(removeThought(t.id))}
+                      onClick={() => {
+                        dispatch(removeThought(t.id));
+                        toast.success("🗑️ Random thought deleted!");
+                      }}
                       style={{
                         background: '#ff4444',
                         border: 'none',

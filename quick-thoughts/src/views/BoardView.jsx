@@ -18,13 +18,13 @@ const BoardView = () => {
     [plans, selectedPlanId]
   );
 
-  // ✅ Group todos safely by status
+  // Group todos safely by status
   const todosByStatus = useMemo(() => {
     if (!selectedPlan) return { todo: [], inprogress: [], done: [] };
 
     const withStatus = selectedPlan.todos.map((t) => ({
       ...t,
-      status: t.status || "todo", // fallback for old todos
+      status: t.status || "todo",
     }));
 
     return {
@@ -116,8 +116,8 @@ const BoardView = () => {
 
                           {list.map((todo, index) => (
                             <Draggable
-                              key={String(todo.id)} // ✅ Always string
-                              draggableId={String(todo.id)} // ✅ Always string
+                              key={String(todo.id)}
+                              draggableId={String(todo.id)}
                               index={index}
                             >
                               {(provided) => (
@@ -126,7 +126,24 @@ const BoardView = () => {
                                   ref={provided.innerRef}
                                   {...provided.draggableProps}
                                   {...provided.dragHandleProps}
+                                  style={{
+                                    ...provided.draggableProps.style,
+                                    // ✅ Add visual styling for completed tasks
+                                    ...(status === "done" && {
+                                      textDecoration: "line-through",
+                                      opacity: 0.7,
+                                      background: "#d4edda",
+                                      color: "#155724",
+                                      border: "2px solid #28a745"
+                                    })
+                                  }}
                                 >
+                                  {/* ✅ Add checkmark for done tasks */}
+                                  {status === "done" && (
+                                    <span style={{ marginRight: "8px", fontSize: "16px" }}>
+                                      ✓
+                                    </span>
+                                  )}
                                   {todo.text}
                                 </div>
                               )}

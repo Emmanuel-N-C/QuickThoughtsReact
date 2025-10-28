@@ -27,10 +27,10 @@ const plansSlice = createSlice({
       const plan = state.find((p) => p.id === planId);
       if (plan) {
         plan.todos.push({
-          id: String(nanoid()), // ✅ always string
+          id: String(nanoid()),
           text,
           completed: false,
-          status: "todo", // ✅ default for board
+          status: "todo",
         });
       }
     },
@@ -39,7 +39,11 @@ const plansSlice = createSlice({
       const plan = state.find((p) => p.id === planId);
       if (plan) {
         const todo = plan.todos.find((t) => String(t.id) === String(todoId));
-        if (todo) todo.status = status;
+        if (todo) {
+          todo.status = status;
+          // ✅ Sync completed field with status
+          todo.completed = status === "done";
+        }
       }
     },
     toggleTodoInPlan(state, action) {
@@ -47,7 +51,11 @@ const plansSlice = createSlice({
       const plan = state.find((p) => p.id === planId);
       if (plan) {
         const todo = plan.todos.find((t) => String(t.id) === String(todoId));
-        if (todo) todo.completed = !todo.completed;
+        if (todo) {
+          todo.completed = !todo.completed;
+          // ✅ Sync status field with completed
+          todo.status = todo.completed ? "done" : "todo";
+        }
       }
     },
     removeTodoFromPlan(state, action) {

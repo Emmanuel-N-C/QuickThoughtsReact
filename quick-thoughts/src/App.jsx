@@ -10,6 +10,14 @@ const App = () => {
   const [currentView, setCurrentView] = useState("overview");
   const [listFilter, setListFilter] = useState("All");
 
+  // Wrapper function to handle sidebar navigation
+  const handleSidebarNavigation = (view) => {
+    if (view === "list") {
+      setListFilter("All"); // Reset filter when navigating from sidebar
+    }
+    setCurrentView(view);
+  };
+
   // Render the current active page
   const renderView = () => {
     switch (currentView) {
@@ -38,7 +46,7 @@ const App = () => {
       <Sidebar
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
-        setCurrentView={setCurrentView}
+        setCurrentView={handleSidebarNavigation}
       />
 
       {/* Main Content (no header or input below) */}

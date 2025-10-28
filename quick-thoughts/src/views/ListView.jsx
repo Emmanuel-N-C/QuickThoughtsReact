@@ -5,6 +5,7 @@ import { removeThought, convertThought, toggleStarThought, addThoughtWithTimeout
 import { removeTodo, toggleTodo, addTodo, editTodo } from "../redux/todosSlice";
 import { removePlan, addPlan, editPlan } from "../redux/plansSlice";
 import PlanDetailView from "./PlanDetailView";
+import { getRelativeTime, searchItems, calculatePlanProgress } from "../utilities";
 import "./ListView.css";
 
 const ListView = ({ initialFilter = "All", setCurrentView }) => {
@@ -18,6 +19,7 @@ const ListView = ({ initialFilter = "All", setCurrentView }) => {
   // Local states
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [filter, setFilter] = useState(initialFilter);
+  const [searchTerm, setSearchTerm] = useState("");
 
   // Toggle states for showing/hiding add forms
   const [showAddIdea, setShowAddIdea] = useState(false);
@@ -56,6 +58,8 @@ const ListView = ({ initialFilter = "All", setCurrentView }) => {
         // Cancel all edits
         handleCancelEditTodo();
         handleCancelEditPlan();
+        // Clear search
+        setSearchTerm("");
       }
     };
     window.addEventListener('keydown', handleEscape);
@@ -67,25 +71,40 @@ const ListView = ({ initialFilter = "All", setCurrentView }) => {
   const progress =
     todos.length > 0 ? Math.round((completedCount / todos.length) * 100) : 0;
 
-  // Apply filter logic
-  const filteredIdeas =
-    filter === "All" || filter === "Ideas"
-      ? thoughts.filter((t) => t.category === "Idea" && !t.starred)
-      : [];
+  // Apply filter logic and search
+  const allIdeas = thoughts.filter((t) => t.category === "Idea" && !t.starred);
+  const allStarredIdeas = thoughts.filter((t) => t.category === "Idea" && t.starred);
+  const allRandomThoughts = thoughts.filter((t) => t.category === "Random Thought");
   
-  const filteredStarredIdeas =
-    filter === "All" || filter === "Ideas" || filter === "Starred Ideas"
-      ? thoughts.filter((t) => t.category === "Idea" && t.starred)
-      : [];
+  const filteredIdeas = searchItems(
+    filter === "All" || filter === "Ideas" ? allIdeas : [],
+    searchTerm,
+    'thoughts'
+  );
+  
+  const filteredStarredIdeas = searchItems(
+    filter === "All" || filter === "Ideas" || filter === "Starred Ideas" ? allStarredIdeas : [],
+    searchTerm,
+    'thoughts'
+  );
 
-  const filteredRandomThoughts =
-    filter === "All" || filter === "Random Thoughts"
-      ? thoughts.filter((t) => t.category === "Random Thought")
-      : [];
-  const filteredTodos =
-    filter === "All" || filter === "To-Dos" ? todos : [];
-  const filteredPlans =
-    filter === "All" || filter === "Plans" ? plans : [];
+  const filteredRandomThoughts = searchItems(
+    filter === "All" || filter === "Random Thoughts" ? allRandomThoughts : [],
+    searchTerm,
+    'thoughts'
+  );
+  
+  const filteredTodos = searchItems(
+    filter === "All" || filter === "To-Dos" ? todos : [],
+    searchTerm,
+    'todos'
+  );
+  
+  const filteredPlans = searchItems(
+    filter === "All" || filter === "Plans" ? plans : [],
+    searchTerm,
+    'plans'
+  );
 
   // Check if all filtered arrays are empty
   const hasNoItems =
@@ -228,6 +247,48 @@ const ListView = ({ initialFilter = "All", setCurrentView }) => {
         Your saved ideas, to-dos, and plans — neatly organized.
       </p>
 
+      {/* Search Bar */}
+      <div style={{ marginBottom: "20px" }}>
+        <input
+          type="text"
+          placeholder="🔍 Search across all items..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          style={{
+            width: "100%",
+            padding: "12px 16px",
+            fontSize: "16px",
+            border: "2px solid #ddd",
+            borderRadius: "8px",
+            outline: "none",
+            transition: "border-color 0.2s"
+          }}
+          onFocus={(e) => e.target.style.borderColor = "#007bff"}
+          onBlur={(e) => e.target.style.borderColor = "#ddd"}
+        />
+        {searchTerm && (
+          <div style={{ marginTop: "8px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontSize: "14px", color: "#666" }}>
+              Found: {filteredIdeas.length + filteredStarredIdeas.length + filteredRandomThoughts.length + filteredTodos.length + filteredPlans.length} items
+            </span>
+            <button
+              onClick={() => setSearchTerm("")}
+              style={{
+                background: "#6c757d",
+                color: "white",
+                border: "none",
+                borderRadius: "4px",
+                padding: "4px 12px",
+                cursor: "pointer",
+                fontSize: "12px"
+              }}
+            >
+              Clear Search
+            </button>
+          </div>
+        )}
+      </div>
+
       <div className="filter-container">
         <label>Filter by:</label>
         <select
@@ -255,15 +316,22 @@ const ListView = ({ initialFilter = "All", setCurrentView }) => {
           borderRadius: "12px",
           margin: "20px 0"
         }}>
-          <p style={{ fontSize: "48px", margin: "0 0 16px 0" }}>📭</p>
-          <p style={{ fontWeight: "bold", fontSize: "20px", margin: "0 0 8px 0" }}>No items found</p>
+          <p style={{ fontSize: "48px", margin: "0 0 16px 0" }}>
+            {searchTerm ? "🔍" : "📭"}
+          </p>
+          <p style={{ fontWeight: "bold", fontSize: "20px", margin: "0 0 8px 0" }}>
+            {searchTerm ? "No results found" : "No items found"}
+          </p>
           <p style={{ fontSize: "14px", marginTop: "10px", color: "#666" }}>
-            {filter === "All" && "Start by adding some ideas, thoughts, to-dos, or plans using the buttons below!"}
-            {filter === "Starred Ideas" && "No starred ideas yet. Star an idea to see it here!"}
-            {filter === "Ideas" && "No ideas yet. Click the '+ Add Idea' button below to get started!"}
-            {filter === "Random Thoughts" && "No random thoughts currently. They auto-delete after 15 seconds!"}
-            {filter === "To-Dos" && "No to-dos yet. Click the '+ Add To-Do' button below to create your first task!"}
-            {filter === "Plans" && "No plans yet. Click the '+ Add Plan' button below to create your first plan!"}
+            {searchTerm 
+              ? `No items match "${searchTerm}". Try a different search term.`
+              : filter === "All" ? "Start by adding some ideas, thoughts, to-dos, or plans using the buttons below!"
+              : filter === "Starred Ideas" ? "No starred ideas yet. Star an idea to see it here!"
+              : filter === "Ideas" ? "No ideas yet. Click the '+ Add Idea' button below to get started!"
+              : filter === "Random Thoughts" ? "No random thoughts currently. They auto-delete after 15 seconds!"
+              : filter === "To-Dos" ? "No to-dos yet. Click the '+ Add To-Do' button below to create your first task!"
+              : "No plans yet. Click the '+ Add Plan' button below to create your first plan!"
+            }
           </p>
         </div>
       )}
@@ -283,7 +351,7 @@ const ListView = ({ initialFilter = "All", setCurrentView }) => {
                 border: "2px dashed #ffd700"
               }}>
                 <p style={{ fontSize: "32px", margin: "0 0 8px 0" }}>⭐</p>
-                <p style={{ margin: 0 }}>No starred ideas yet</p>
+                <p style={{ margin: 0 }}>{searchTerm ? "No matching starred ideas" : "No starred ideas yet"}</p>
                 <p style={{ fontSize: "12px", marginTop: "8px", color: "#999" }}>
                   Star your favorite ideas to see them here!
                 </p>
@@ -293,10 +361,8 @@ const ListView = ({ initialFilter = "All", setCurrentView }) => {
                 <div key={idea.id} className="item-card">
                   <div>
                     <strong>{idea.text}</strong>
-                    <div className="item-date">
-                      {idea.createdAt
-                        ? new Date(idea.createdAt).toLocaleString()
-                        : "No date"}
+                    <div className="item-date" style={{ fontSize: "12px", color: "#888", marginTop: "4px" }}>
+                      {getRelativeTime(idea.createdAt)}
                     </div>
                   </div>
                   <div>
@@ -417,7 +483,7 @@ const ListView = ({ initialFilter = "All", setCurrentView }) => {
                 border: "2px dashed #007bff"
               }}>
                 <p style={{ fontSize: "32px", margin: "0 0 8px 0" }}>💡</p>
-                <p style={{ margin: 0 }}>No ideas yet</p>
+                <p style={{ margin: 0 }}>{searchTerm ? "No matching ideas" : "No ideas yet"}</p>
                 <p style={{ fontSize: "12px", marginTop: "8px", color: "#999" }}>
                   Click "+ Add Idea" to capture your brilliant thoughts!
                 </p>
@@ -427,10 +493,8 @@ const ListView = ({ initialFilter = "All", setCurrentView }) => {
                 <div key={idea.id} className="item-card">
                   <div>
                     <strong>{idea.text}</strong>
-                    <div className="item-date">
-                      {idea.createdAt
-                        ? new Date(idea.createdAt).toLocaleString()
-                        : "No date"}
+                    <div className="item-date" style={{ fontSize: "12px", color: "#888", marginTop: "4px" }}>
+                      {getRelativeTime(idea.createdAt)}
                     </div>
                   </div>
                   <div>
@@ -551,7 +615,7 @@ const ListView = ({ initialFilter = "All", setCurrentView }) => {
                 border: "2px dashed #6c757d"
               }}>
                 <p style={{ fontSize: "32px", margin: "0 0 8px 0" }}>💭</p>
-                <p style={{ margin: 0 }}>No random thoughts currently</p>
+                <p style={{ margin: 0 }}>{searchTerm ? "No matching thoughts" : "No random thoughts currently"}</p>
                 <p style={{ fontSize: "12px", marginTop: "8px", color: "#999" }}>
                   These fleeting thoughts disappear after 15 seconds!
                 </p>
@@ -573,7 +637,21 @@ const ListView = ({ initialFilter = "All", setCurrentView }) => {
         {/* === TO-DOS CARD === */}
         {(filter === "All" || filter === "To-Dos") && (
           <div className="list-card">
-            <h3>📝 To-Dos</h3>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px" }}>
+              <h3 style={{ margin: 0 }}>📝 To-Dos</h3>
+              {filteredTodos.length > 0 && (
+                <div style={{
+                  background: progress === 100 ? "#28a745" : "#007bff",
+                  color: "white",
+                  padding: "4px 12px",
+                  borderRadius: "12px",
+                  fontSize: "12px",
+                  fontWeight: "bold"
+                }}>
+                  {progress}% Complete
+                </div>
+              )}
+            </div>
             
             {/* Toggle Button */}
             {!showAddTodo ? (
@@ -655,126 +733,107 @@ const ListView = ({ initialFilter = "All", setCurrentView }) => {
                 border: "2px dashed #28a745"
               }}>
                 <p style={{ fontSize: "32px", margin: "0 0 8px 0" }}>✅</p>
-                <p style={{ margin: 0 }}>No to-dos yet</p>
+                <p style={{ margin: 0 }}>{searchTerm ? "No matching to-dos" : "No to-dos yet"}</p>
                 <p style={{ fontSize: "12px", marginTop: "8px", color: "#999" }}>
                   Click "+ Add To-Do" to create your first task!
                 </p>
               </div>
             ) : (
-              <>
-                <div className="progress-wrapper">
-                  <div className="progress-circle">
-                    <svg>
-                      <circle className="circle-bg" cx="40" cy="40" r="35" />
-                      <circle
-                        className="circle"
-                        cx="40"
-                        cy="40"
-                        r="35"
+              filteredTodos.map((todo) => (
+                <div key={todo.id} className="item-card">
+                  {/* Edit mode or normal mode */}
+                  {editingTodoId === todo.id ? (
+                    // EDIT MODE
+                    <div style={{ display: "flex", gap: "8px", flex: 1, alignItems: "center" }}>
+                      <input
+                        type="text"
+                        value={editTodoText}
+                        onChange={(e) => setEditTodoText(e.target.value)}
+                        autoFocus
                         style={{
-                          strokeDasharray: `${progress * 2.2}, 220`,
+                          flex: 1,
+                          padding: "6px",
+                          borderRadius: "4px",
+                          border: "2px solid #007bff"
                         }}
                       />
-                    </svg>
-                    <div className="progress-text">{progress}%</div>
-                  </div>
-                </div>
-                {filteredTodos.map((todo) => (
-                  <div key={todo.id} className="item-card">
-                    {/* Edit mode or normal mode */}
-                    {editingTodoId === todo.id ? (
-                      // EDIT MODE
-                      <div style={{ display: "flex", gap: "8px", flex: 1, alignItems: "center" }}>
-                        <input
-                          type="text"
-                          value={editTodoText}
-                          onChange={(e) => setEditTodoText(e.target.value)}
-                          autoFocus
-                          style={{
-                            flex: 1,
-                            padding: "6px",
-                            borderRadius: "4px",
-                            border: "2px solid #007bff"
+                      <button
+                        onClick={() => handleSaveEditTodo(todo.id)}
+                        style={{
+                          background: "#28a745",
+                          color: "white",
+                          border: "none",
+                          borderRadius: "4px",
+                          padding: "4px 12px",
+                          cursor: "pointer"
+                        }}
+                      >
+                        ✓
+                      </button>
+                      <button
+                        onClick={handleCancelEditTodo}
+                        style={{
+                          background: "#6c757d",
+                          color: "white",
+                          border: "none",
+                          borderRadius: "4px",
+                          padding: "4px 12px",
+                          cursor: "pointer"
+                        }}
+                      >
+                        ✖
+                      </button>
+                    </div>
+                  ) : (
+                    // NORMAL MODE
+                    <>
+                      <label className="checkbox-wrapper">
+                        <input 
+                          type="checkbox" 
+                          checked={todo.completed || false} 
+                          onChange={() => {
+                            dispatch(toggleTodo(todo.id));
+                            if (!todo.completed) {
+                              toast.success("✅ To-do completed!");
+                            }
                           }}
                         />
+                        <span
+                          className={`todo-text ${
+                            todo.completed ? "completed" : ""
+                          }`}
+                        >
+                          {todo.text}
+                        </span>
+                      </label>
+                      <div>
                         <button
-                          onClick={() => handleSaveEditTodo(todo.id)}
+                          onClick={() => handleEditTodo(todo)}
                           style={{
-                            background: "#28a745",
+                            background: "#007bff",
                             color: "white",
                             border: "none",
                             borderRadius: "4px",
-                            padding: "4px 12px",
-                            cursor: "pointer"
+                            padding: "4px 8px",
+                            cursor: "pointer",
+                            marginRight: "4px",
+                            fontSize: "14px"
                           }}
+                          title="Edit"
                         >
-                          ✓
+                          ✏️
                         </button>
                         <button
-                          onClick={handleCancelEditTodo}
-                          style={{
-                            background: "#6c757d",
-                            color: "white",
-                            border: "none",
-                            borderRadius: "4px",
-                            padding: "4px 12px",
-                            cursor: "pointer"
-                          }}
+                          className="delete-btn"
+                          onClick={() => handleDeleteWithConfirm("todo", todo.id, () => dispatch(removeTodo(todo.id)))}
                         >
                           ✖
                         </button>
                       </div>
-                    ) : (
-                      // NORMAL MODE
-                      <>
-                        <label className="checkbox-wrapper">
-                          <input 
-                            type="checkbox" 
-                            checked={todo.completed || false} 
-                            onChange={() => {
-                              dispatch(toggleTodo(todo.id));
-                              if (!todo.completed) {
-                                toast.success("✅ To-do completed!");
-                              }
-                            }}
-                          />
-                          <span
-                            className={`todo-text ${
-                              todo.completed ? "completed" : ""
-                            }`}
-                          >
-                            {todo.text}
-                          </span>
-                        </label>
-                        <div>
-                          <button
-                            onClick={() => handleEditTodo(todo)}
-                            style={{
-                              background: "#007bff",
-                              color: "white",
-                              border: "none",
-                              borderRadius: "4px",
-                              padding: "4px 8px",
-                              cursor: "pointer",
-                              marginRight: "4px",
-                              fontSize: "14px"
-                            }}
-                            title="Edit"
-                          >
-                            ✏️
-                          </button>
-                          <button
-                            className="delete-btn"
-                            onClick={() => handleDeleteWithConfirm("todo", todo.id, () => dispatch(removeTodo(todo.id)))}
-                          >
-                            ✖
-                          </button>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                ))}
-              </>
+                    </>
+                  )}
+                </div>
+              ))
             )}
           </div>
         )}
@@ -879,113 +938,158 @@ const ListView = ({ initialFilter = "All", setCurrentView }) => {
                 border: "2px dashed #17a2b8"
               }}>
                 <p style={{ fontSize: "32px", margin: "0 0 8px 0" }}>📅</p>
-                <p style={{ margin: 0 }}>No plans yet</p>
+                <p style={{ margin: 0 }}>{searchTerm ? "No matching plans" : "No plans yet"}</p>
                 <p style={{ fontSize: "12px", marginTop: "8px", color: "#999" }}>
                   Click "+ Add Plan" to create your first plan!
                 </p>
               </div>
             ) : (
-              filteredPlans.map((plan) => (
-                <div key={plan.id} className="item-card">
-                  {/* Edit mode or normal mode */}
-                  {editingPlanId === plan.id ? (
-                    // EDIT MODE
-                    <div style={{ display: "flex", flexDirection: "column", gap: "8px", flex: 1 }}>
-                      <input
-                        type="text"
-                        value={editPlanTitle}
-                        onChange={(e) => setEditPlanTitle(e.target.value)}
-                        autoFocus
-                        style={{
-                          padding: "6px",
-                          borderRadius: "4px",
-                          border: "2px solid #007bff"
-                        }}
-                      />
-                      <input
-                        type="text"
-                        value={editPlanDesc}
-                        onChange={(e) => setEditPlanDesc(e.target.value)}
-                        placeholder="Description (optional)..."
-                        style={{
-                          padding: "6px",
-                          borderRadius: "4px",
-                          border: "2px solid #007bff"
-                        }}
-                      />
-                      <div style={{ display: "flex", gap: "8px" }}>
-                        <button
-                          onClick={() => handleSaveEditPlan(plan.id)}
+              filteredPlans.map((plan) => {
+                const planProgress = calculatePlanProgress(plan);
+                const totalTasks = plan.todos?.length || 0;
+                const completedTasks = plan.todos?.filter(t => t.completed).length || 0;
+                
+                return (
+                  <div key={plan.id} className="item-card">
+                    {/* Edit mode or normal mode */}
+                    {editingPlanId === plan.id ? (
+                      // EDIT MODE
+                      <div style={{ display: "flex", flexDirection: "column", gap: "8px", flex: 1 }}>
+                        <input
+                          type="text"
+                          value={editPlanTitle}
+                          onChange={(e) => setEditPlanTitle(e.target.value)}
+                          autoFocus
                           style={{
-                            flex: 1,
-                            background: "#28a745",
-                            color: "white",
-                            border: "none",
+                            padding: "6px",
                             borderRadius: "4px",
-                            padding: "6px 12px",
-                            cursor: "pointer"
+                            border: "2px solid #007bff"
                           }}
-                        >
-                          ✓ Save
-                        </button>
-                        <button
-                          onClick={handleCancelEditPlan}
+                        />
+                        <input
+                          type="text"
+                          value={editPlanDesc}
+                          onChange={(e) => setEditPlanDesc(e.target.value)}
+                          placeholder="Description (optional)..."
                           style={{
-                            flex: 1,
-                            background: "#6c757d",
-                            color: "white",
-                            border: "none",
+                            padding: "6px",
                             borderRadius: "4px",
-                            padding: "6px 12px",
-                            cursor: "pointer"
+                            border: "2px solid #007bff"
                           }}
-                        >
-                          ✖ Cancel
-                        </button>
+                        />
+                        <div style={{ display: "flex", gap: "8px" }}>
+                          <button
+                            onClick={() => handleSaveEditPlan(plan.id)}
+                            style={{
+                              flex: 1,
+                              background: "#28a745",
+                              color: "white",
+                              border: "none",
+                              borderRadius: "4px",
+                              padding: "6px 12px",
+                              cursor: "pointer"
+                            }}
+                          >
+                            ✓ Save
+                          </button>
+                          <button
+                            onClick={handleCancelEditPlan}
+                            style={{
+                              flex: 1,
+                              background: "#6c757d",
+                              color: "white",
+                              border: "none",
+                              borderRadius: "4px",
+                              padding: "6px 12px",
+                              cursor: "pointer"
+                            }}
+                          >
+                            ✖ Cancel
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ) : (
-                    // NORMAL MODE
-                    <>
-                      <div>
-                        <strong
-                          className="clickable"
-                          onClick={() => setSelectedPlan(plan.id)}
-                        >
-                          {plan.title}
-                        </strong>
-                        <p className="item-desc">
-                          {plan.description || "No description"}
-                        </p>
-                      </div>
-                      <div>
-                        <button
-                          onClick={() => handleEditPlan(plan)}
-                          style={{
-                            background: "#007bff",
-                            color: "white",
-                            border: "none",
-                            borderRadius: "4px",
-                            padding: "4px 8px",
-                            cursor: "pointer",
-                            marginRight: "4px",
-                            fontSize: "14px"
-                          }}
-                          title="Edit"
-                        >
-                          ✏️
-                        </button>
-                        <button
-                          className="delete-btn"
-                          onClick={() => handleDeleteWithConfirm("plan", plan.id, () => dispatch(removePlan(plan.id)))}
-                        >
-                          ✖
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              ))
+                    ) : (
+                      // NORMAL MODE
+                      <>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                            <strong
+                              className="clickable"
+                              onClick={() => setSelectedPlan(plan.id)}
+                            >
+                              {plan.title}
+                            </strong>
+                            {totalTasks > 0 && (
+                              <span style={{
+                                background: planProgress === 100 ? "#28a745" : "#17a2b8",
+                                color: "white",
+                                padding: "2px 8px",
+                                borderRadius: "10px",
+                                fontSize: "11px",
+                                fontWeight: "bold"
+                              }}>
+                                {completedTasks}/{totalTasks}
+                              </span>
+                            )}
+                          </div>
+                          <p className="item-desc" style={{ margin: "4px 0" }}>
+                            {plan.description || "No description"}
+                          </p>
+                          {totalTasks > 0 && (
+                            <div style={{ marginTop: "8px" }}>
+                              <div style={{
+                                width: "100%",
+                                height: "6px",
+                                background: "#e0e0e0",
+                                borderRadius: "3px",
+                                overflow: "hidden"
+                              }}>
+                                <div style={{
+                                  width: `${planProgress}%`,
+                                  height: "100%",
+                                  background: planProgress === 100 ? "#28a745" : "#17a2b8",
+                                  transition: "width 0.3s ease"
+                                }} />
+                              </div>
+                              <div style={{
+                                fontSize: "11px",
+                                color: "#666",
+                                marginTop: "4px"
+                              }}>
+                                {planProgress}% complete
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        <div>
+                          <button
+                            onClick={() => handleEditPlan(plan)}
+                            style={{
+                              background: "#007bff",
+                              color: "white",
+                              border: "none",
+                              borderRadius: "4px",
+                              padding: "4px 8px",
+                              cursor: "pointer",
+                              marginRight: "4px",
+                              fontSize: "14px"
+                            }}
+                            title="Edit"
+                          >
+                            ✏️
+                          </button>
+                          <button
+                            className="delete-btn"
+                            onClick={() => handleDeleteWithConfirm("plan", plan.id, () => dispatch(removePlan(plan.id)))}
+                          >
+                            ✖
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                );
+              })
             )}
           </div>
         )}
@@ -1024,7 +1128,7 @@ const RandomThoughtItem = ({ thought, dispatch, convertThought, removeThought })
   const progress = (timeLeft / 15) * 100;
 
   return (
-    <div key={thought.id} className="item-card" style={{ position: "relative", overflow: "hidden" }}>
+    <div className="item-card" style={{ position: "relative", overflow: "hidden" }}>
       {/* Timer Progress Bar */}
       <div
         style={{

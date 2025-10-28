@@ -3,6 +3,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { addTodoToPlan, updateTodoStatus } from "../redux/plansSlice";
 import toast from 'react-hot-toast';
+import { calculatePlanProgress } from "../utilities";
 import "./BoardView.css";
 
 const BoardView = () => {
@@ -85,57 +86,99 @@ const BoardView = () => {
             <p style={{ margin: 0, fontSize: "14px" }}>No plans yet</p>
           </div>
         ) : (
-          plans.map((plan) => (
-            <div
-              key={plan.id}
-              className={`plan-item ${
-                selectedPlanId === plan.id ? "active" : ""
-              }`}
-              onClick={() => setSelectedPlanId(plan.id)}
-              onMouseEnter={() => setHoveredPlanId(plan.id)}
-              onMouseLeave={() => setHoveredPlanId(null)}
-              style={{ position: "relative" }}
-            >
-              {plan.title}
-              
-              {/* Tooltip for plan description */}
-              {hoveredPlanId === plan.id && plan.description && (
-                <div
-                  style={{
-                    position: "absolute",
-                    left: "110%",
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    background: "#333",
-                    color: "white",
-                    padding: "8px 12px",
-                    borderRadius: "6px",
-                    fontSize: "12px",
-                    whiteSpace: "nowrap",
-                    maxWidth: "200px",
-                    zIndex: 1000,
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
-                    pointerEvents: "none"
-                  }}
-                >
-                  {plan.description}
+          plans.map((plan) => {
+            const progress = calculatePlanProgress(plan);
+            const totalTasks = plan.todos?.length || 0;
+            const completedTasks = plan.todos?.filter(t => t.completed).length || 0;
+            
+            return (
+              <div
+                key={plan.id}
+                className={`plan-item ${
+                  selectedPlanId === plan.id ? "active" : ""
+                }`}
+                onClick={() => setSelectedPlanId(plan.id)}
+                onMouseEnter={() => setHoveredPlanId(plan.id)}
+                onMouseLeave={() => setHoveredPlanId(null)}
+                style={{ position: "relative" }}
+              >
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
+                  <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {plan.title}
+                  </span>
+                  {totalTasks > 0 && (
+                    <span style={{
+                      background: progress === 100 ? "#28a745" : "#007bff",
+                      color: "white",
+                      padding: "2px 6px",
+                      borderRadius: "8px",
+                      fontSize: "10px",
+                      fontWeight: "bold",
+                      whiteSpace: "nowrap"
+                    }}>
+                      {completedTasks}/{totalTasks}
+                    </span>
+                  )}
+                </div>
+                
+                {/* Progress bar */}
+                {totalTasks > 0 && (
+                  <div style={{
+                    width: "100%",
+                    height: "3px",
+                    background: "#e0e0e0",
+                    borderRadius: "2px",
+                    marginTop: "6px",
+                    overflow: "hidden"
+                  }}>
+                    <div style={{
+                      width: `${progress}%`,
+                      height: "100%",
+                      background: progress === 100 ? "#28a745" : "#007bff",
+                      transition: "width 0.3s ease"
+                    }} />
+                  </div>
+                )}
+                
+                {/* Tooltip for plan description */}
+                {hoveredPlanId === plan.id && plan.description && (
                   <div
                     style={{
                       position: "absolute",
-                      right: "100%",
+                      left: "110%",
                       top: "50%",
                       transform: "translateY(-50%)",
-                      width: 0,
-                      height: 0,
-                      borderTop: "6px solid transparent",
-                      borderBottom: "6px solid transparent",
-                      borderRight: "6px solid #333"
+                      background: "#333",
+                      color: "white",
+                      padding: "8px 12px",
+                      borderRadius: "6px",
+                      fontSize: "12px",
+                      whiteSpace: "nowrap",
+                      maxWidth: "200px",
+                      zIndex: 1000,
+                      boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+                      pointerEvents: "none"
                     }}
-                  />
-                </div>
-              )}
-            </div>
-          ))
+                  >
+                    {plan.description}
+                    <div
+                      style={{
+                        position: "absolute",
+                        right: "100%",
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        width: 0,
+                        height: 0,
+                        borderTop: "6px solid transparent",
+                        borderBottom: "6px solid transparent",
+                        borderRight: "6px solid #333"
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+            );
+          })
         )}
       </aside>
 
@@ -155,6 +198,19 @@ const BoardView = () => {
                   fontStyle: "italic"
                 }}>
                   — {selectedPlan.description}
+                </span>
+              )}
+              {selectedPlan.todos && selectedPlan.todos.length > 0 && (
+                <span style={{
+                  background: calculatePlanProgress(selectedPlan) === 100 ? "#28a745" : "#007bff",
+                  color: "white",
+                  padding: "4px 10px",
+                  borderRadius: "12px",
+                  fontSize: "12px",
+                  fontWeight: "bold",
+                  marginLeft: "auto"
+                }}>
+                  {selectedPlan.todos.filter(t => t.completed).length}/{selectedPlan.todos.length} Complete
                 </span>
               )}
             </div>

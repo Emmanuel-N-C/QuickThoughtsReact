@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import { addThoughtWithTimeout, convertThought, removeThought } from "../redux/thoughtsSlice";
 import { addTodo } from "../redux/todosSlice";
 import { addPlan } from "../redux/plansSlice";
+import { getRelativeTime } from "../utilities";
 import "./Overview.css";
 
 const Overview = ({ setCurrentView, setListFilter }) => {
@@ -190,7 +191,12 @@ const Overview = ({ setCurrentView, setListFilter }) => {
               .reverse()
               .map((t) => (
                 <li key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0' }}>
-                  <span className="thought-text">{t.text}</span>
+                  <div style={{ flex: 1 }}>
+                    <span className="thought-text">{t.text}</span>
+                    <div style={{ fontSize: "11px", color: "#999", marginTop: "4px" }}>
+                      {getRelativeTime(t.createdAt)}
+                    </div>
+                  </div>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <button
                       onClick={() => {

@@ -3,6 +3,7 @@ import { useSelector, useDispatch } from "react-redux";
 import toast from 'react-hot-toast';
 import { addTodoToPlan, toggleTodoInPlan, removeTodoFromPlan, editTodoInPlan } from "../redux/plansSlice";
 import { removeTodo } from "../redux/todosSlice";
+import { getPlanStats } from "../utilities";
 import "./PlanDetailView.css";
 
 const PlanDetailView = ({ planId, onBack }) => {
@@ -42,6 +43,8 @@ const PlanDetailView = ({ planId, onBack }) => {
       </div>
     );
   }
+
+  const stats = getPlanStats(plan);
 
   const handleAddTask = () => {
     if (newTask.trim()) {
@@ -91,7 +94,43 @@ const PlanDetailView = ({ planId, onBack }) => {
         <button onClick={onBack} className="back-btn">
           ← Back
         </button>
-        <h2>{plan.title}</h2>
+        <div style={{ flex: 1 }}>
+          <h2 style={{ margin: 0 }}>{plan.title}</h2>
+          {stats.total > 0 && (
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              marginTop: "8px"
+            }}>
+              <div style={{
+                flex: 1,
+                maxWidth: "300px",
+                height: "8px",
+                background: "#e0e0e0",
+                borderRadius: "4px",
+                overflow: "hidden"
+              }}>
+                <div style={{
+                  width: `${stats.percentage}%`,
+                  height: "100%",
+                  background: stats.percentage === 100 ? "#28a745" : "#007bff",
+                  transition: "width 0.3s ease"
+                }} />
+              </div>
+              <span style={{
+                background: stats.percentage === 100 ? "#28a745" : "#007bff",
+                color: "white",
+                padding: "4px 10px",
+                borderRadius: "12px",
+                fontSize: "12px",
+                fontWeight: "bold"
+              }}>
+                {stats.completed}/{stats.total} Complete ({stats.percentage}%)
+              </span>
+            </div>
+          )}
+        </div>
       </div>
 
       <p className="plan-desc">{plan.description || "No description provided."}</p>

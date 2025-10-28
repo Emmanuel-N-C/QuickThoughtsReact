@@ -8,14 +8,15 @@ import "./App.css";
 const App = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [currentView, setCurrentView] = useState("overview");
+  const [listFilter, setListFilter] = useState("All");
 
   // Render the current active page
   const renderView = () => {
     switch (currentView) {
       case "overview":
-        return <Overview />;
+        return <Overview setCurrentView={setCurrentView} setListFilter={setListFilter} />;
       case "list":
-        return <ListView />;
+        return <ListView initialFilter={listFilter} setCurrentView={setCurrentView} />;
       case "board":
         return <BoardView />;
       default:

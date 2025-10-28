@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { removeThought, convertThought } from "../redux/thoughtsSlice";
+import { removeThought, convertThought, toggleStarThought } from "../redux/thoughtsSlice";
 import { removeTodo } from "../redux/todosSlice";
 import { removePlan } from "../redux/plansSlice";
 import PlanDetailView from "./PlanDetailView";
@@ -29,10 +29,18 @@ const ListView = ({ initialFilter = "All", setCurrentView }) => {
     todos.length > 0 ? Math.round((completedCount / todos.length) * 100) : 0;
 
   // Apply filter logic
+  // ✅ Regular ideas (not starred)
   const filteredIdeas =
     filter === "All" || filter === "Ideas"
-      ? thoughts.filter((t) => t.category === "Idea")
+      ? thoughts.filter((t) => t.category === "Idea" && !t.starred)
       : [];
+  
+  // ✅ Starred ideas
+  const filteredStarredIdeas =
+    filter === "All" || filter === "Ideas" || filter === "Starred Ideas"
+      ? thoughts.filter((t) => t.category === "Idea" && t.starred)
+      : [];
+
   const filteredRandomThoughts =
     filter === "All" || filter === "Random Thoughts"
       ? thoughts.filter((t) => t.category === "Random Thought")
@@ -45,6 +53,7 @@ const ListView = ({ initialFilter = "All", setCurrentView }) => {
   // Check if all filtered arrays are empty
   const hasNoItems =
     filteredIdeas.length === 0 &&
+    filteredStarredIdeas.length === 0 &&
     filteredRandomThoughts.length === 0 &&
     filteredTodos.length === 0 &&
     filteredPlans.length === 0;
@@ -94,6 +103,7 @@ const ListView = ({ initialFilter = "All", setCurrentView }) => {
           className="filter-select"
         >
           <option value="All">All</option>
+          <option value="Starred Ideas">⭐ Starred Ideas</option>
           <option value="Ideas">Ideas</option>
           <option value="Random Thoughts">Random Thoughts</option>
           <option value="To-Dos">To-Dos</option>
@@ -112,6 +122,7 @@ const ListView = ({ initialFilter = "All", setCurrentView }) => {
           <p>📭 No items found</p>
           <p style={{ fontSize: "14px", marginTop: "10px" }}>
             {filter === "All" && "Start by adding some ideas, thoughts, to-dos, or plans!"}
+            {filter === "Starred Ideas" && "No starred ideas yet. Star an idea to see it here!"}
             {filter === "Ideas" && "No ideas yet. Click 'Back to Overview' to add your first idea!"}
             {filter === "Random Thoughts" && "No random thoughts currently. They auto-delete after 15 seconds!"}
             {filter === "To-Dos" && "No to-dos yet. Click 'Back to Overview' to add your first task!"}
@@ -121,7 +132,58 @@ const ListView = ({ initialFilter = "All", setCurrentView }) => {
       )}
 
       <div className="list-grid">
-        {/* === IDEAS CARD === */}
+        {/* === STARRED IDEAS CARD === */}
+        {/* ✅ Show when: All, Ideas, or Starred Ideas filter */}
+        {(filter === "All" || filter === "Ideas" || filter === "Starred Ideas") && (
+          <div className="list-card">
+            <h3>⭐ Starred Ideas</h3>
+            {filteredStarredIdeas.length === 0 ? (
+              <p className="empty" style={{ padding: "20px", textAlign: "center", color: "#888" }}>
+                No starred ideas yet
+              </p>
+            ) : (
+              filteredStarredIdeas.map((idea) => (
+                <div key={idea.id} className="item-card">
+                  <div>
+                    <strong>{idea.text}</strong>
+                    <div className="item-date">
+                      {idea.createdAt
+                        ? new Date(idea.createdAt).toLocaleString()
+                        : "No date"}
+                    </div>
+                  </div>
+                  <div>
+                    <button 
+                      className="star-btn"
+                      onClick={() => dispatch(toggleStarThought(idea.id))}
+                      style={{
+                        background: '#ffd700',
+                        border: '2px solid #ffd700',
+                        color: '#fff',
+                        fontSize: '18px',
+                        cursor: 'pointer',
+                        padding: '4px 8px',
+                        borderRadius: '4px'
+                      }}
+                      title="Unstar"
+                    >
+                      ⭐
+                    </button>
+                    <button
+                      className="delete-btn"
+                      onClick={() => dispatch(removeThought(idea.id))}
+                    >
+                      ✖
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+
+        {/* === IDEAS CARD (unstarred only) === */}
+        {/* ✅ Show when: All or Ideas filter */}
         {(filter === "All" || filter === "Ideas") && (
           <div className="list-card">
             <h3>💡 Ideas</h3>
@@ -141,7 +203,22 @@ const ListView = ({ initialFilter = "All", setCurrentView }) => {
                     </div>
                   </div>
                   <div>
-                    <button className="star-btn">⭐</button>
+                    <button 
+                      className="star-btn"
+                      onClick={() => dispatch(toggleStarThought(idea.id))}
+                      style={{
+                        background: 'transparent',
+                        border: '2px solid #ccc',
+                        color: '#ccc',
+                        fontSize: '18px',
+                        cursor: 'pointer',
+                        padding: '4px 8px',
+                        borderRadius: '4px'
+                      }}
+                      title="Star this idea"
+                    >
+                      ☆
+                    </button>
                     <button
                       className="delete-btn"
                       onClick={() => dispatch(removeThought(idea.id))}

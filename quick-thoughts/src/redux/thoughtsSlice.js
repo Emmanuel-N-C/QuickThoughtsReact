@@ -11,6 +11,7 @@ const thoughtsSlice = createSlice({
         text: action.payload.text,
         category: action.payload.category || 'Random',
         createdAt: new Date().toISOString(),
+        starred: false, // ✅ Add starred property
       });
     },
     removeThought: (state, action) => {
@@ -21,10 +22,15 @@ const thoughtsSlice = createSlice({
       const thought = state.find((t) => t.id === id);
       if (thought) thought.category = newCategory;
     },
+    // ✅ NEW: Toggle starred status
+    toggleStarThought: (state, action) => {
+      const thought = state.find((t) => t.id === action.payload);
+      if (thought) thought.starred = !thought.starred;
+    },
   },
 });
 
-export const { addThought, removeThought, convertThought } = thoughtsSlice.actions;
+export const { addThought, removeThought, convertThought, toggleStarThought } = thoughtsSlice.actions;
 
 // Enhanced thunk for 15s auto-removal
 export const addThoughtWithTimeout = (text, category) => (dispatch) => {

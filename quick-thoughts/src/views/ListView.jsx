@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { removeThought, convertThought, toggleStarThought } from "../redux/thoughtsSlice";
-import { removeTodo } from "../redux/todosSlice";
+import { removeTodo, toggleTodo } from "../redux/todosSlice";
 import { removePlan } from "../redux/plansSlice";
 import PlanDetailView from "./PlanDetailView";
 import "./ListView.css";
@@ -269,57 +269,61 @@ const ListView = ({ initialFilter = "All", setCurrentView }) => {
           </div>
         )}
 
-        {/* === TO-DOS CARD === */}
-        {(filter === "All" || filter === "To-Dos") && (
-          <div className="list-card">
-            <h3>📝 To-Dos</h3>
-            {filteredTodos.length === 0 ? (
-              <p className="empty" style={{ padding: "20px", textAlign: "center", color: "#888" }}>
-                No to-dos yet
-              </p>
-            ) : (
-              <>
-                <div className="progress-wrapper">
-                  <div className="progress-circle">
-                    <svg>
-                      <circle className="circle-bg" cx="40" cy="40" r="35" />
-                      <circle
-                        className="circle"
-                        cx="40"
-                        cy="40"
-                        r="35"
-                        style={{
-                          strokeDasharray: `${progress * 2.2}, 220`,
-                        }}
-                      />
-                    </svg>
-                    <div className="progress-text">{progress}%</div>
-                  </div>
-                </div>
-                {filteredTodos.map((todo) => (
-                  <div key={todo.id} className="item-card">
-                    <label className="checkbox-wrapper">
-                      <input type="checkbox" checked={todo.completed || false} readOnly />
-                      <span
-                        className={`todo-text ${
-                          todo.completed ? "completed" : ""
-                        }`}
-                      >
-                        {todo.text}
-                      </span>
-                    </label>
-                    <button
-                      className="delete-btn"
-                      onClick={() => dispatch(removeTodo(todo.id))}
-                    >
-                      ✖
-                    </button>
-                  </div>
-                ))}
-              </>
-            )}
+{/* === TO-DOS CARD === */}
+{(filter === "All" || filter === "To-Dos") && (
+  <div className="list-card">
+    <h3>📝 To-Dos</h3>
+    {filteredTodos.length === 0 ? (
+      <p className="empty" style={{ padding: "20px", textAlign: "center", color: "#888" }}>
+        No to-dos yet
+      </p>
+    ) : (
+      <>
+        <div className="progress-wrapper">
+          <div className="progress-circle">
+            <svg>
+              <circle className="circle-bg" cx="40" cy="40" r="35" />
+              <circle
+                className="circle"
+                cx="40"
+                cy="40"
+                r="35"
+                style={{
+                  strokeDasharray: `${progress * 2.2}, 220`,
+                }}
+              />
+            </svg>
+            <div className="progress-text">{progress}%</div>
           </div>
-        )}
+        </div>
+        {filteredTodos.map((todo) => (
+          <div key={todo.id} className="item-card">
+            <label className="checkbox-wrapper">
+              <input 
+                type="checkbox" 
+                checked={todo.completed || false} 
+                onChange={() => dispatch(toggleTodo(todo.id))} // ✅ Make it clickable
+              />
+              <span
+                className={`todo-text ${
+                  todo.completed ? "completed" : ""
+                }`}
+              >
+                {todo.text}
+              </span>
+            </label>
+            <button
+              className="delete-btn"
+              onClick={() => dispatch(removeTodo(todo.id))}
+            >
+              ✖
+            </button>
+          </div>
+        ))}
+      </>
+    )}
+  </div>
+)}
 
         {/* === PLANS CARD === */}
         {(filter === "All" || filter === "Plans") && (

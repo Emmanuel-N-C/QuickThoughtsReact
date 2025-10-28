@@ -15,6 +15,7 @@ const Overview = ({ setCurrentView, setListFilter }) => {
 
   const [category, setCategory] = useState("Random Thought");
   const [text, setText] = useState("");
+  const [description, setDescription] = useState(""); // ✅ New state for plan description
 
   // Navigate to list view with specific filter
   const handleCardClick = (filterType) => {
@@ -43,10 +44,11 @@ const Overview = ({ setCurrentView, setListFilter }) => {
         completed: false 
       }));
     } else if (category === "Plan") {
-      dispatch(addPlan(text, "")); // title, description
+      dispatch(addPlan(text, description)); // Pass both title and description
     }
 
     setText("");
+    setDescription(""); // Clear description after adding
   };
 
   return (
@@ -136,12 +138,36 @@ const Overview = ({ setCurrentView, setListFilter }) => {
           <option>To-Do</option>
           <option>Plan</option>
         </select>
-        <input
-          type="text"
-          placeholder={`Add a new ${category.toLowerCase()}...`}
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-        />
+        
+        {/* ✅ Show different inputs based on category */}
+        {category === "Plan" ? (
+          // Plan-specific inputs (title + description)
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', flex: 1 }}>
+            <input
+              type="text"
+              placeholder="Plan title..."
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              style={{ width: '100%' }}
+            />
+            <input
+              type="text"
+              placeholder="Plan description (optional)..."
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              style={{ width: '100%' }}
+            />
+          </div>
+        ) : (
+          // Default single input for other categories
+          <input
+            type="text"
+            placeholder={`Add a new ${category.toLowerCase()}...`}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+          />
+        )}
+        
         <button type="submit" className="add-btn">
           Add
         </button>

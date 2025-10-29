@@ -1,22 +1,67 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useSelector } from "react-redux";
+import toast from 'react-hot-toast';
 import Sidebar from "./Sidebar";
 import Overview from "./views/Overview";
 import ListView from "./views/ListView";
 import BoardView from "./views/BoardView";
+import ProgressPanel from "./ProgressPanel";
 import "./App.css";
 
 const App = () => {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isProgressOpen, setIsProgressOpen] = useState(true);
   const [currentView, setCurrentView] = useState("overview");
   const [listFilter, setListFilter] = useState("All");
 
   // Wrapper function to handle sidebar navigation
   const handleSidebarNavigation = (view) => {
     if (view === "list") {
-      setListFilter("All"); // Reset filter when navigating from sidebar
+      setListFilter("All");
     }
     setCurrentView(view);
+    // Auto-close sidebar on mobile
+    if (window.innerWidth < 1024) {
+      setIsSidebarOpen(false);
+    }
   };
+
+  // Global keyboard shortcuts
+  useEffect(() => {
+    const handleKeyPress = (e) => {
+      // Cmd/Ctrl + 1: Overview
+      if ((e.metaKey || e.ctrlKey) && e.key === '1') {
+        e.preventDefault();
+        setCurrentView('overview');
+        toast.success('📊 Switched to Overview');
+      }
+      // Cmd/Ctrl + 2: List View
+      if ((e.metaKey || e.ctrlKey) && e.key === '2') {
+        e.preventDefault();
+        setCurrentView('list');
+        toast.success('📋 Switched to List View');
+      }
+      // Cmd/Ctrl + 3: Board View
+      if ((e.metaKey || e.ctrlKey) && e.key === '3') {
+        e.preventDefault();
+        setCurrentView('board');
+        toast.success('🎯 Switched to Board View');
+      }
+      // Cmd/Ctrl + B: Toggle Sidebar
+      if ((e.metaKey || e.ctrlKey) && e.key === 'b') {
+        e.preventDefault();
+        setIsSidebarOpen(!isSidebarOpen);
+      }
+      // Cmd/Ctrl + P: Toggle Progress Panel
+      if ((e.metaKey || e.ctrlKey) && e.key === 'p') {
+        e.preventDefault();
+        setIsProgressOpen(!isProgressOpen);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [isSidebarOpen, isProgressOpen]);
 
   // Render the current active page
   const renderView = () => {
@@ -34,12 +79,24 @@ const App = () => {
 
   return (
     <div className="app-container">
-      {/* Toggle Sidebar Button */}
+      {/* Hamburger Menu Button */}
       <button
-        className="toggle-sidebar-btn"
-        onClick={() => setIsSidebarOpen(true)}
+        className="hamburger-btn"
+        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+        aria-label="Toggle menu"
       >
-        📋 Menu
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+
+      {/* Progress Panel Toggle (Right side) */}
+      <button
+        className="progress-toggle-btn"
+        onClick={() => setIsProgressOpen(!isProgressOpen)}
+        title="Toggle Progress Panel"
+      >
+        {isProgressOpen ? "›" : "‹"}
       </button>
 
       {/* Sidebar */}
@@ -47,12 +104,21 @@ const App = () => {
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
         setCurrentView={handleSidebarNavigation}
+        currentView={currentView}
       />
 
-      {/* Main Content (no header or input below) */}
-      <div className="main-content">
+      {/* Main Content */}
+      <div className={`main-content ${isSidebarOpen ? 'sidebar-open' : ''} ${isProgressOpen ? 'progress-open' : ''}`}>
         {renderView()}
       </div>
+
+      {/* Progress Panel (Right side) */}
+      <ProgressPanel isOpen={isProgressOpen} />
+
+      {/* Overlay for mobile */}
+      {isSidebarOpen && window.innerWidth < 1024 && (
+        <div className="overlay" onClick={() => setIsSidebarOpen(false)}></div>
+      )}
     </div>
   );
 };

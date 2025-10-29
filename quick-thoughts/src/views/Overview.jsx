@@ -1,6 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import toast from 'react-hot-toast';
+import { FaLightbulb, FaBrain, FaCheckCircle, FaCalendarAlt, FaTrash, FaSave, FaArrowRight } from 'react-icons/fa';
+import { HiSparkles } from 'react-icons/hi';
+import { MdAccessTime } from 'react-icons/md';
 import { addThoughtWithTimeout, convertThought, removeThought } from "../redux/thoughtsSlice";
 import { addTodo } from "../redux/todosSlice";
 import { addPlan } from "../redux/plansSlice";
@@ -15,42 +18,44 @@ const Overview = ({ setCurrentView, setListFilter }) => {
   const randomThoughts = thoughts.filter((t) => t.category === "Random Thought");
   const plans = useSelector((state) => state.plans);
 
-  const [category, setCategory] = useState("Random Thought");
+  const [category, setCategory] = useState("Idea");
   const [text, setText] = useState("");
   const [description, setDescription] = useState("");
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
 
-  // Navigate to list view with specific filter
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyPress = (e) => {
+      // Cmd/Ctrl + K for quick add
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setShowQuickAdd(!showQuickAdd);
+      }
+      // Escape to close
+      if (e.key === 'Escape') {
+        setShowQuickAdd(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [showQuickAdd]);
+
   const handleCardClick = (filterType) => {
     setListFilter(filterType);
     setCurrentView("list");
   };
 
-  // Handle button click - just change category, don't navigate
-  const handleButtonClick = (e, newCategory) => {
-    e.stopPropagation();
-    setCategory(newCategory);
-  };
-
-  // handle adding new input based on category
   const handleAdd = (e) => {
     e.preventDefault();
     if (text.trim() === "") return;
 
-    // Route to appropriate action based on category
     if (category === "Idea" || category === "Random Thought") {
       dispatch(addThoughtWithTimeout(text, category));
-      if (category === "Idea") {
-        toast.success("💡 Idea added!");
-      } else {
-        toast.success("💭 Random thought added! (Disappears in 15s)");
-      }
+      toast.success(category === "Idea" ? "💡 Idea saved!" : "💭 Thought captured!");
     } else if (category === "To-Do") {
-      dispatch(addTodo({ 
-        id: Date.now(), 
-        text, 
-        completed: false 
-      }));
-      toast.success("✅ To-do added!");
+      dispatch(addTodo({ id: Date.now(), text, completed: false }));
+      toast.success("✅ Task added!");
     } else if (category === "Plan") {
       dispatch(addPlan(text, description));
       toast.success("📅 Plan created!");
@@ -58,185 +63,268 @@ const Overview = ({ setCurrentView, setListFilter }) => {
 
     setText("");
     setDescription("");
+    setShowQuickAdd(false);
   };
+
+  const completedTodos = todos.filter(t => t.completed).length;
+  const todoProgress = todos.length > 0 ? Math.round((completedTodos / todos.length) * 100) : 0;
 
   return (
     <div className="overview-container">
-      {/* Dashboard Header */}
-      <h2 className="overview-title">📊 Overview</h2>
-      <p className="overview-subtitle">
-        A quick summary of your creative workspace.
-      </p>
-
-      {/* Dashboard Cards */}
-      <div className="overview-cards">
-        <div
-          className={`overview-card ${category === "Idea" ? "active" : ""}`}
-          onClick={() => handleCardClick("Ideas")}
-          style={{ cursor: 'pointer' }}
+      {/* Header with gradient */}
+      <div className="overview-header">
+        <div className="header-content">
+          <h1 className="overview-title">
+            <span className="title-icon">
+              <HiSparkles />
+            </span>
+            Overview
+          </h1>
+          <p className="overview-subtitle">
+            Your creative workspace at a glance
+          </p>
+        </div>
+        <button 
+          className="quick-add-btn"
+          onClick={() => setShowQuickAdd(!showQuickAdd)}
         >
-          <span className="icon">💡</span>
-          <h3>Ideas</h3>
-          <p>{ideas.length}</p>
-          <button 
-            className="small-btn"
-            onClick={(e) => handleButtonClick(e, "Idea")}
-          >
-            + Add Idea
-          </button>
+          <span className="plus-icon">+</span>
+          Quick Add
+          <span className="kbd-hint">⌘K</span>
+        </button>
+      </div>
+
+      {/* Quick Add Modal */}
+      {showQuickAdd && (
+        <div className="quick-add-modal">
+          <div className="modal-overlay" onClick={() => setShowQuickAdd(false)}></div>
+          <div className="modal-content">
+            <div className="modal-header">
+              <h3>
+                <HiSparkles style={{ marginRight: '8px' }} />
+                Quick Add
+              </h3>
+              <button onClick={() => setShowQuickAdd(false)} className="modal-close">×</button>
+            </div>
+            <form onSubmit={handleAdd}>
+              <div className="category-tabs">
+                <button
+                  type="button"
+                  className={`tab ${category === "Idea" ? "active" : ""}`}
+                  onClick={() => setCategory("Idea")}
+                >
+                  <FaLightbulb style={{ marginRight: '6px' }} />
+                  Idea
+                </button>
+                <button
+                  type="button"
+                  className={`tab ${category === "Random Thought" ? "active" : ""}`}
+                  onClick={() => setCategory("Random Thought")}
+                >
+                  <FaBrain style={{ marginRight: '6px' }} />
+                  Thought
+                </button>
+                <button
+                  type="button"
+                  className={`tab ${category === "To-Do" ? "active" : ""}`}
+                  onClick={() => setCategory("To-Do")}
+                >
+                  <FaCheckCircle style={{ marginRight: '6px' }} />
+                  To-Do
+                </button>
+                <button
+                  type="button"
+                  className={`tab ${category === "Plan" ? "active" : ""}`}
+                  onClick={() => setCategory("Plan")}
+                >
+                  <FaCalendarAlt style={{ marginRight: '6px' }} />
+                  Plan
+                </button>
+              </div>
+              
+              <input
+                type="text"
+                placeholder={`Enter ${category.toLowerCase()}...`}
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                autoFocus
+                className="modal-input"
+              />
+              
+              {category === "Plan" && (
+                <textarea
+                  placeholder="Description (optional)..."
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="modal-textarea"
+                  rows="3"
+                />
+              )}
+              
+              <div className="modal-actions">
+                <button type="button" onClick={() => setShowQuickAdd(false)} className="btn-secondary">
+                  Cancel
+                </button>
+                <button type="submit" className="btn-primary">
+                  Add {category}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Horizontal Cards Grid */}
+      <div className="cards-grid">
+        <div className="stat-card gradient-purple" onClick={() => handleCardClick("Ideas")}>
+          <div className="card-icon">
+            <FaLightbulb />
+          </div>
+          <div className="card-content">
+            <h3>Ideas</h3>
+            <div className="card-number">{ideas.length}</div>
+            <p className="card-subtitle">Brilliant thoughts</p>
+          </div>
+          <div className="card-arrow">
+            <FaArrowRight />
+          </div>
         </div>
 
-        <div
-          className={`overview-card ${category === "Random Thought" ? "active" : ""}`}
-          onClick={() => handleCardClick("Random Thoughts")}
-          style={{ cursor: 'pointer' }}
-        >
-          <span className="icon">💭</span>
-          <h3>Random Thoughts</h3>
-          <p>{randomThoughts.length}</p>
-          <button 
-            className="small-btn"
-            onClick={(e) => handleButtonClick(e, "Random Thought")}
-          >
-            + Add Thought
-          </button>
+        <div className="stat-card gradient-blue" onClick={() => handleCardClick("Random Thoughts")}>
+          <div className="card-icon">
+            <FaBrain />
+          </div>
+          <div className="card-content">
+            <h3>Random Thoughts</h3>
+            <div className="card-number">{randomThoughts.length}</div>
+            <p className="card-subtitle">Fleeting moments</p>
+          </div>
+          <div className="card-arrow">
+            <FaArrowRight />
+          </div>
         </div>
 
-        <div
-          className={`overview-card ${category === "To-Do" ? "active" : ""}`}
-          onClick={() => handleCardClick("To-Dos")}
-          style={{ cursor: 'pointer' }}
-        >
-          <span className="icon">📝</span>
-          <h3>To-Dos</h3>
-          <p>{todos.length}</p>
-          <button 
-            className="small-btn"
-            onClick={(e) => handleButtonClick(e, "To-Do")}
-          >
-            + Add Task
-          </button>
+        <div className="stat-card gradient-green" onClick={() => handleCardClick("To-Dos")}>
+          <div className="card-icon">
+            <FaCheckCircle />
+          </div>
+          <div className="card-content">
+            <h3>To-Dos</h3>
+            <div className="card-number">{todos.length}</div>
+            <div className="progress-mini">
+              <div className="progress-mini-fill" style={{ width: `${todoProgress}%` }}></div>
+            </div>
+            <p className="card-subtitle">{todoProgress}% complete</p>
+          </div>
+          <div className="card-arrow">
+            <FaArrowRight />
+          </div>
         </div>
 
-        <div
-          className={`overview-card ${category === "Plan" ? "active" : ""}`}
-          onClick={() => handleCardClick("Plans")}
-          style={{ cursor: 'pointer' }}
-        >
-          <span className="icon">📅</span>
-          <h3>Plans</h3>
-          <p>{plans.length}</p>
-          <button 
-            className="small-btn"
-            onClick={(e) => handleButtonClick(e, "Plan")}
-          >
-            + Add Plan
-          </button>
+        <div className="stat-card gradient-pink" onClick={() => handleCardClick("Plans")}>
+          <div className="card-icon">
+            <FaCalendarAlt />
+          </div>
+          <div className="card-content">
+            <h3>Plans</h3>
+            <div className="card-number">{plans.length}</div>
+            <p className="card-subtitle">Active projects</p>
+          </div>
+          <div className="card-arrow">
+            <FaArrowRight />
+          </div>
         </div>
       </div>
 
-      {/* Input Section */}
-      <form className="overview-input" onSubmit={handleAdd}>
-        <select
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-          className="category-select"
-        >
-          <option>Idea</option>
-          <option>Random Thought</option>
-          <option>To-Do</option>
-          <option>Plan</option>
-        </select>
-        
-        {category === "Plan" ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', flex: 1 }}>
-            <input
-              type="text"
-              placeholder="Plan title..."
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              style={{ width: '100%' }}
-            />
-            <input
-              type="text"
-              placeholder="Plan description (optional)..."
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              style={{ width: '100%' }}
-            />
-          </div>
-        ) : (
-          <input
-            type="text"
-            placeholder={`Add a new ${category.toLowerCase()}...`}
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-          />
-        )}
-        
-        <button type="submit" className="add-btn">
-          Add
-        </button>
-      </form>
+      {/* Recent Activity Section */}
+      <div className="activity-section">
+        <div className="section-header">
+          <h2>
+            <MdAccessTime style={{ marginRight: '8px' }} />
+            Recent Activity
+          </h2>
+          <button className="view-all-btn" onClick={() => setCurrentView("list")}>
+            View All <FaArrowRight style={{ marginLeft: '4px' }} />
+          </button>
+        </div>
 
-      {/* Recent Thoughts */}
-      <div className="recent-section">
-        <h3>🕒 Recent Random Thoughts (Auto-delete in 15s)</h3>
-        {randomThoughts.length === 0 ? (
-          <p className="empty">No random thoughts yet.</p>
-        ) : (
-          <ul className="recent-list">
-            {randomThoughts
-              .slice(-5)
-              .reverse()
-              .map((t) => (
-                <li key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0' }}>
-                  <div style={{ flex: 1 }}>
-                    <span className="thought-text">{t.text}</span>
-                    <div style={{ fontSize: "11px", color: "#999", marginTop: "4px" }}>
-                      {getRelativeTime(t.createdAt)}
+        <div className="activity-grid">
+          {/* Recent Random Thoughts */}
+          <div className="activity-card">
+            <h3>
+              <FaBrain style={{ marginRight: '8px', color: '#8b5cf6' }} />
+              Random Thoughts
+            </h3>
+            {randomThoughts.length === 0 ? (
+              <div className="empty-state">
+                <span className="empty-icon">
+                  <HiSparkles />
+                </span>
+                <p>No thoughts yet</p>
+              </div>
+            ) : (
+              <div className="activity-list">
+                {randomThoughts.slice(-3).reverse().map((thought) => (
+                  <div key={thought.id} className="activity-item">
+                    <div className="activity-text">{thought.text}</div>
+                    <div className="activity-meta">
+                      <span className="activity-time">{getRelativeTime(thought.createdAt)}</span>
+                      <div className="activity-actions">
+                        <button
+                          onClick={() => {
+                            dispatch(convertThought({ id: thought.id, newCategory: "Idea" }));
+                            toast.success("💡 Saved as idea!");
+                          }}
+                          className="action-btn save"
+                          title="Save as Idea"
+                        >
+                          <FaSave />
+                        </button>
+                        <button
+                          onClick={() => {
+                            dispatch(removeThought(thought.id));
+                            toast.success("Deleted!");
+                          }}
+                          className="action-btn delete"
+                          title="Delete"
+                        >
+                          <FaTrash />
+                        </button>
+                      </div>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button
-                      onClick={() => {
-                        dispatch(convertThought({ id: t.id, newCategory: "Idea" }));
-                        toast.success("💡 Converted to Idea!");
-                      }}
-                      style={{
-                        background: '#ffd700',
-                        border: 'none',
-                        borderRadius: '4px',
-                        padding: '4px 8px',
-                        cursor: 'pointer',
-                        fontSize: '16px'
-                      }}
-                      title="Save as Idea"
-                    >
-                      💡
-                    </button>
-                    <button
-                      onClick={() => {
-                        dispatch(removeThought(t.id));
-                        toast.success("🗑️ Random thought deleted!");
-                      }}
-                      style={{
-                        background: '#ff4444',
-                        border: 'none',
-                        borderRadius: '4px',
-                        padding: '4px 8px',
-                        cursor: 'pointer',
-                        color: 'white'
-                      }}
-                      title="Delete now"
-                    >
-                      ✖
-                    </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Recent Ideas */}
+          <div className="activity-card">
+            <h3>
+              <FaLightbulb style={{ marginRight: '8px', color: '#fbbf24' }} />
+              Recent Ideas
+            </h3>
+            {ideas.length === 0 ? (
+              <div className="empty-state">
+                <span className="empty-icon">
+                  <FaLightbulb />
+                </span>
+                <p>No ideas yet</p>
+              </div>
+            ) : (
+              <div className="activity-list">
+                {ideas.slice(-3).reverse().map((idea) => (
+                  <div key={idea.id} className="activity-item">
+                    <div className="activity-text">{idea.text}</div>
+                    <div className="activity-meta">
+                      <span className="activity-time">{getRelativeTime(idea.createdAt)}</span>
+                    </div>
                   </div>
-                </li>
-              ))}
-          </ul>
-        )}
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

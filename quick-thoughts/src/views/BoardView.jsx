@@ -1,7 +1,9 @@
 import React, { useState, useMemo } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
-import { addTodoToPlan, updateTodoStatus, reorderTodosInPlan } from "../redux/plansSlice";
+import { FaCalendarAlt, FaPlus, FaCheckCircle, FaClock, FaFire } from 'react-icons/fa';
+import { MdDragIndicator } from 'react-icons/md';
+import { addTodoToPlan, reorderTodosInPlan } from "../redux/plansSlice";
 import toast from 'react-hot-toast';
 import { calculatePlanProgress } from "../utilities";
 import "./BoardView.css";
@@ -21,7 +23,7 @@ const BoardView = () => {
     [plans, selectedPlanId]
   );
 
-   // Group todos safely by status - SIMPLER VERSION
+  // Group todos safely by status - SIMPLER VERSION
   const todosByStatus = useMemo(() => {
     if (!selectedPlan || !selectedPlan.todos) return { todo: [], inprogress: [], done: [] };
 
@@ -77,18 +79,27 @@ const BoardView = () => {
     <div className="board-container">
       {/* Sidebar */}
       <aside className="board-sidebar">
-        <h3>📅 My Plans</h3>
+        <h3>
+          <FaCalendarAlt style={{ marginRight: '8px', color: '#6366f1' }} />
+          My Plans
+        </h3>
         {plans.length === 0 ? (
           <div style={{
-            padding: "20px",
+            padding: "30px 20px",
             textAlign: "center",
-            color: "#888",
-            background: "#f8f9fa",
-            borderRadius: "8px",
-            margin: "10px 0"
+            color: "#9ca3af",
+            background: "#f9fafb",
+            borderRadius: "12px",
+            margin: "10px 0",
+            border: "2px dashed #e5e7eb"
           }}>
-            <p style={{ fontSize: "32px", margin: "0 0 8px 0" }}>📋</p>
-            <p style={{ margin: 0, fontSize: "14px" }}>No plans yet</p>
+            <p style={{ fontSize: "48px", margin: "0 0 12px 0", opacity: 0.5 }}>
+              <FaCalendarAlt />
+            </p>
+            <p style={{ margin: 0, fontSize: "14px", fontWeight: "500" }}>No plans yet</p>
+            <p style={{ margin: "8px 0 0 0", fontSize: "12px", color: "#6b7280" }}>
+              Create a plan to get started
+            </p>
           </div>
         ) : (
           plans.map((plan) => {
@@ -108,19 +119,23 @@ const BoardView = () => {
                 style={{ position: "relative" }}
               >
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px" }}>
-                  <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis" }}>
+                  <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", fontWeight: selectedPlanId === plan.id ? "600" : "500" }}>
                     {plan.title}
                   </span>
                   {totalTasks > 0 && (
                     <span style={{
-                      background: progress === 100 ? "#28a745" : "#007bff",
+                      background: progress === 100 ? "#10b981" : selectedPlanId === plan.id ? "rgba(255,255,255,0.3)" : "#6366f1",
                       color: "white",
-                      padding: "2px 6px",
-                      borderRadius: "8px",
+                      padding: "3px 8px",
+                      borderRadius: "10px",
                       fontSize: "10px",
-                      fontWeight: "bold",
-                      whiteSpace: "nowrap"
+                      fontWeight: "700",
+                      whiteSpace: "nowrap",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "4px"
                     }}>
+                      <FaCheckCircle style={{ fontSize: "8px" }} />
                       {completedTasks}/{totalTasks}
                     </span>
                   )}
@@ -130,17 +145,17 @@ const BoardView = () => {
                 {totalTasks > 0 && (
                   <div style={{
                     width: "100%",
-                    height: "3px",
-                    background: "#e0e0e0",
+                    height: "4px",
+                    background: selectedPlanId === plan.id ? "rgba(255,255,255,0.2)" : "#e5e7eb",
                     borderRadius: "2px",
-                    marginTop: "6px",
+                    marginTop: "8px",
                     overflow: "hidden"
                   }}>
                     <div style={{
                       width: `${progress}%`,
                       height: "100%",
-                      background: progress === 100 ? "#28a745" : "#007bff",
-                      transition: "width 0.3s ease"
+                      background: selectedPlanId === plan.id ? "white" : progress === 100 ? "#10b981" : "#6366f1",
+                      transition: "width 0.5s ease"
                     }} />
                   </div>
                 )}
@@ -153,15 +168,15 @@ const BoardView = () => {
                       left: "110%",
                       top: "50%",
                       transform: "translateY(-50%)",
-                      background: "#333",
+                      background: "#1f2937",
                       color: "white",
-                      padding: "8px 12px",
-                      borderRadius: "6px",
+                      padding: "10px 14px",
+                      borderRadius: "8px",
                       fontSize: "12px",
                       whiteSpace: "nowrap",
-                      maxWidth: "200px",
+                      maxWidth: "250px",
                       zIndex: 1000,
-                      boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
                       pointerEvents: "none"
                     }}
                   >
@@ -176,7 +191,7 @@ const BoardView = () => {
                         height: 0,
                         borderTop: "6px solid transparent",
                         borderBottom: "6px solid transparent",
-                        borderRight: "6px solid #333"
+                        borderRight: "6px solid #1f2937"
                       }}
                     />
                   </div>
@@ -189,32 +204,46 @@ const BoardView = () => {
 
       {/* Main Board */}
       <main className="board-main">
-        <h2>📋 Board View</h2>
-        <p>Drag and drop your tasks between stages and reorder within columns.</p>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "8px" }}>
+          <h2 style={{ margin: 0 }}>
+            <MdDragIndicator style={{ marginRight: '8px', color: '#6366f1' }} />
+            Board View
+          </h2>
+        </div>
+        <p style={{ color: "#6b7280", marginBottom: "24px" }}>
+          Drag and drop your tasks between stages and reorder within columns.
+        </p>
 
         {selectedPlan ? (
           <>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "20px" }}>
-              <h3 className="plan-title" style={{ margin: 0 }}>{selectedPlan.title}</h3>
-              {selectedPlan.description && (
-                <span style={{
-                  fontSize: "12px",
-                  color: "#666",
-                  fontStyle: "italic"
-                }}>
-                  — {selectedPlan.description}
-                </span>
-              )}
+            <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "20px", padding: "16px", background: "linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%)", borderRadius: "12px" }}>
+              <FaCalendarAlt style={{ fontSize: "24px", color: "#6366f1" }} />
+              <div style={{ flex: 1 }}>
+                <h3 className="plan-title" style={{ margin: "0 0 4px 0", fontSize: "1.4rem" }}>{selectedPlan.title}</h3>
+                {selectedPlan.description && (
+                  <span style={{
+                    fontSize: "13px",
+                    color: "#6b7280",
+                    fontStyle: "italic"
+                  }}>
+                    {selectedPlan.description}
+                  </span>
+                )}
+              </div>
               {selectedPlan.todos && selectedPlan.todos.length > 0 && (
                 <span style={{
-                  background: calculatePlanProgress(selectedPlan) === 100 ? "#28a745" : "#007bff",
+                  background: calculatePlanProgress(selectedPlan) === 100 ? "#10b981" : "#6366f1",
                   color: "white",
-                  padding: "4px 10px",
-                  borderRadius: "12px",
-                  fontSize: "12px",
-                  fontWeight: "bold",
-                  marginLeft: "auto"
+                  padding: "8px 16px",
+                  borderRadius: "20px",
+                  fontSize: "13px",
+                  fontWeight: "700",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  boxShadow: "0 4px 12px rgba(99, 102, 241, 0.3)"
                 }}>
+                  <FaCheckCircle />
                   {selectedPlan.todos.filter(t => t.completed).length}/{selectedPlan.todos.length} Complete
                 </span>
               )}
@@ -228,44 +257,57 @@ const BoardView = () => {
                 onChange={(e) => setNewTask(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleAddTask()}
               />
-              <button onClick={handleAddTask}>Add</button>
+              <button onClick={handleAddTask}>
+                <FaPlus style={{ marginRight: '6px' }} />
+                Add Task
+              </button>
             </div>
 
             <DragDropContext onDragEnd={onDragEnd}>
               <div className="board-columns">
-                {["todo", "inprogress", "done"].map((status) => {
-                  const list = todosByStatus[status] || [];
+                {[
+                  { id: "todo", label: "To Do", icon: <FaClock />, color: "#6366f1" },
+                  { id: "inprogress", label: "In Progress", icon: <FaFire />, color: "#f59e0b" },
+                  { id: "done", label: "Done", icon: <FaCheckCircle />, color: "#10b981" }
+                ].map((column) => {
+                  const list = todosByStatus[column.id] || [];
 
                   return (
-                    <Droppable key={status} droppableId={status}>
+                    <Droppable key={column.id} droppableId={column.id}>
                       {(provided, snapshot) => (
                         <div
                           className="board-column"
                           ref={provided.innerRef}
                           {...provided.droppableProps}
                           style={{
-                            background: snapshot.isDraggingOver ? "#f0f8ff" : "#f8f9fa"
+                            background: snapshot.isDraggingOver 
+                              ? "linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%)" 
+                              : "linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%)",
+                            borderColor: snapshot.isDraggingOver ? "#c7d2fe" : "transparent"
                           }}
                         >
-                          <h4>
-                            {status === "todo"
-                              ? `📝 To Do (${list.length})`
-                              : status === "inprogress"
-                              ? `🚧 In Progress (${list.length})`
-                              : `✅ Done (${list.length})`}
+                          <h4 style={{ color: column.color }}>
+                            {column.icon}
+                            <span style={{ marginLeft: '8px' }}>{column.label}</span>
+                            <span style={{ 
+                              marginLeft: '8px',
+                              background: column.color,
+                              color: 'white',
+                              padding: '2px 8px',
+                              borderRadius: '10px',
+                              fontSize: '11px',
+                              fontWeight: '700'
+                            }}>
+                              {list.length}
+                            </span>
                           </h4>
 
                           {list.length === 0 && (
-                            <div style={{
-                              padding: "20px",
-                              textAlign: "center",
-                              color: "#ccc",
-                              fontSize: "14px",
-                              border: "2px dashed #ddd",
-                              borderRadius: "8px",
-                              margin: "10px 0"
-                            }}>
-                              Drop tasks here
+                            <div className="empty-column">
+                              <div style={{ fontSize: "32px", marginBottom: "8px", opacity: 0.3 }}>
+                                {column.icon}
+                              </div>
+                              <p>Drop tasks here</p>
                             </div>
                           )}
 
@@ -277,37 +319,46 @@ const BoardView = () => {
                             >
                               {(provided, snapshot) => (
                                 <div
-                                  className="task-card"
+                                  className={`task-card ${column.id === "done" ? "completed" : ""}`}
                                   ref={provided.innerRef}
                                   {...provided.draggableProps}
                                   {...provided.dragHandleProps}
                                   style={{
                                     ...provided.draggableProps.style,
                                     opacity: snapshot.isDragging ? 0.8 : 1,
-                                    ...(status === "done" && {
-                                      textDecoration: "line-through",
-                                      opacity: 0.7,
-                                      background: "#d4edda",
-                                      color: "#155724",
-                                      border: "2px solid #28a745"
-                                    })
+                                    transform: snapshot.isDragging 
+                                      ? `${provided.draggableProps.style?.transform} rotate(3deg)` 
+                                      : provided.draggableProps.style?.transform,
+                                    boxShadow: snapshot.isDragging 
+                                      ? "0 12px 24px rgba(0,0,0,0.15)" 
+                                      : "0 2px 8px rgba(0,0,0,0.08)"
                                   }}
+                                  data-is-dragging={snapshot.isDragging}
                                 >
-                                  {status === "done" && (
-                                    <span style={{ marginRight: "8px", fontSize: "16px" }}>
-                                      ✓
-                                    </span>
-                                  )}
-                                  {todo.text}
-                                  {/* Optional: Show drag handle indicator */}
-                                  <span style={{ 
-                                    float: "right", 
-                                    color: "#ccc", 
-                                    fontSize: "12px",
-                                    userSelect: "none"
-                                  }}>
-                                    ⋮⋮
-                                  </span>
+                                  <div style={{ display: "flex", alignItems: "flex-start", gap: "8px" }}>
+                                    <MdDragIndicator style={{ 
+                                      color: "#d1d5db", 
+                                      fontSize: "20px",
+                                      marginTop: "2px",
+                                      cursor: "grab"
+                                    }} />
+                                    <div style={{ flex: 1 }}>
+                                      {column.id === "done" && (
+                                        <FaCheckCircle style={{ 
+                                          marginRight: "8px", 
+                                          fontSize: "14px",
+                                          color: "#10b981"
+                                        }} />
+                                      )}
+                                      <span style={{ 
+                                        textDecoration: column.id === "done" ? "line-through" : "none",
+                                        color: column.id === "done" ? "#6b7280" : "#1f2937",
+                                        fontWeight: column.id === "done" ? "400" : "500"
+                                      }}>
+                                        {todo.text}
+                                      </span>
+                                    </div>
+                                  </div>
                                 </div>
                               )}
                             </Draggable>
@@ -324,16 +375,21 @@ const BoardView = () => {
           </>
         ) : (
           <div style={{
-            padding: "60px 40px",
+            padding: "80px 40px",
             textAlign: "center",
-            color: "#888",
-            background: "#f8f9fa",
-            borderRadius: "12px",
-            margin: "20px 0"
+            color: "#9ca3af",
+            background: "linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%)",
+            borderRadius: "20px",
+            margin: "40px 0",
+            border: "2px dashed #e5e7eb"
           }}>
-            <p style={{ fontSize: "48px", margin: "0 0 16px 0" }}>📋</p>
-            <p style={{ fontWeight: "bold", fontSize: "20px", margin: "0 0 8px 0" }}>No plan selected</p>
-            <p style={{ fontSize: "14px", color: "#666" }}>Create a plan from Overview or List View to get started!</p>
+            <p style={{ fontSize: "64px", margin: "0 0 16px 0", opacity: 0.4 }}>
+              <FaCalendarAlt />
+            </p>
+            <p style={{ fontWeight: "700", fontSize: "24px", margin: "0 0 8px 0", color: "#1f2937" }}>No plan selected</p>
+            <p style={{ fontSize: "15px", color: "#6b7280" }}>
+              Create a plan from Overview or List View to get started!
+            </p>
           </div>
         )}
       </main>

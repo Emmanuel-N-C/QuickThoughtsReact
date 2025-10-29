@@ -1,60 +1,150 @@
 /* General App Layout */
-.app-container {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-  background-color: #f5f7fa;
-  color: #222;
-  font-family: "Inter", sans-serif;
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
-/* Sidebar Button */
-.toggle-sidebar-btn {
+.app-container {
+  display: flex;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  color: #1f2937;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+/* Hamburger Menu Button */
+.hamburger-btn {
   position: fixed;
   top: 20px;
   left: 20px;
-  background-color: #007bff;
+  width: 50px;
+  height: 50px;
+  background: white;
   border: none;
-  color: white;
-  padding: 10px 16px;
-  border-radius: 8px;
+  border-radius: 12px;
   cursor: pointer;
-  font-size: 0.95rem;
-  z-index: 1000;
-  transition: background 0.2s ease;
+  z-index: 1001;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
 }
 
-.toggle-sidebar-btn:hover {
-  background-color: #0056b3;
+.hamburger-btn:hover {
+  background: #f3f4f6;
+  transform: scale(1.05);
 }
 
-/* Main View Area */
+.hamburger-btn span {
+  width: 24px;
+  height: 3px;
+  background: #6366f1;
+  border-radius: 2px;
+  transition: all 0.3s ease;
+}
+
+.hamburger-btn:hover span {
+  background: #4f46e5;
+}
+
+/* Progress Toggle Button */
+.progress-toggle-btn {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  width: 40px;
+  height: 40px;
+  background: white;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  z-index: 1001;
+  font-size: 1.5rem;
+  color: #6366f1;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.progress-toggle-btn:hover {
+  background: #f3f4f6;
+  transform: scale(1.1);
+}
+
+/* Main Content Area */
 .main-content {
-  flex-grow: 1;
+  flex: 1;
   padding: 80px 40px 40px;
-  max-width: 1200px;
-  margin: 0 auto;
+  margin-left: 0;
+  margin-right: 0;
+  transition: all 0.3s ease;
+  max-width: 100%;
 }
 
-/* Scroll behavior for long views */
-.main-content::-webkit-scrollbar {
-  width: 8px;
+.main-content.sidebar-open {
+  margin-left: 280px;
 }
-.main-content::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.1);
+
+.main-content.progress-open {
+  margin-right: 320px;
+}
+
+/* Overlay for mobile */
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 899;
+  backdrop-filter: blur(4px);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.3);
   border-radius: 4px;
 }
 
-/* Responsive Adjustments */
-@media (max-width: 768px) {
-  .main-content {
-    padding: 100px 20px;
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(99, 102, 241, 0.5);
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .main-content.sidebar-open,
+  .main-content.progress-open {
+    margin-left: 0;
+    margin-right: 0;
   }
 
-  .toggle-sidebar-btn {
-    top: 10px;
-    left: 10px;
-    padding: 8px 12px;
-    font-size: 0.85rem;
+  .progress-toggle-btn {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .main-content {
+    padding: 80px 20px 20px;
+  }
+
+  .hamburger-btn {
+    top: 15px;
+    left: 15px;
+    width: 45px;
+    height: 45px;
   }
 }

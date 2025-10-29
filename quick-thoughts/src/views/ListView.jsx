@@ -2,10 +2,10 @@ import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import toast from 'react-hot-toast';
 import { removeThought, convertThought, toggleStarThought, addThoughtWithTimeout } from "../redux/thoughtsSlice";
-import { removeTodo, toggleTodo, addTodo, editTodo } from "../redux/todosSlice";
-import { removePlan, addPlan, editPlan } from "../redux/plansSlice";
+import { removeTodo, toggleTodo, addTodo, editTodo, reorderTodos, batchDeleteTodos, batchToggleTodos } from "../redux/todosSlice";
+import { removePlan, addPlan, editPlan, batchDeletePlans } from "../redux/plansSlice";
 import PlanDetailView from "./PlanDetailView";
-import { getRelativeTime, searchItems, calculatePlanProgress } from "../utilities";
+import { getRelativeTime, searchItems, calculatePlanProgress, formatDate, getDueDateBadgeStyle } from "../utilities";
 import "./ListView.css";
 
 const ListView = ({ initialFilter = "All", setCurrentView }) => {
@@ -31,40 +31,65 @@ const ListView = ({ initialFilter = "All", setCurrentView }) => {
   const [newIdea, setNewIdea] = useState("");
   const [newRandomThought, setNewRandomThought] = useState("");
   const [newTodo, setNewTodo] = useState("");
+  const [newTodoDueDate, setNewTodoDueDate] = useState("");
   const [newPlanTitle, setNewPlanTitle] = useState("");
   const [newPlanDesc, setNewPlanDesc] = useState("");
+  const [newPlanDueDate, setNewPlanDueDate] = useState("");
 
   // Edit states
   const [editingTodoId, setEditingTodoId] = useState(null);
   const [editTodoText, setEditTodoText] = useState("");
+  const [editTodoDueDate, setEditTodoDueDate] = useState("");
   const [editingPlanId, setEditingPlanId] = useState(null);
   const [editPlanTitle, setEditPlanTitle] = useState("");
   const [editPlanDesc, setEditPlanDesc] = useState("");
+  const [editPlanDueDate, setEditPlanDueDate] = useState("");
+
+  // Batch selection mode
+  const [batchMode, setBatchMode] = useState(false);
+  const [selectedTodos, setSelectedTodos] = useState([]);
+  const [selectedPlans, setSelectedPlans] = useState([]);
+
+  // Drag and drop state
+  const [draggedTodoId, setDraggedTodoId] = useState(null);
 
   // Update filter when initialFilter changes
   useEffect(() => {
     setFilter(initialFilter);
   }, [initialFilter]);
 
+  // Exit batch mode when changing filters
+  useEffect(() => {
+    setBatchMode(false);
+    setSelectedTodos([]);
+    setSelectedPlans([]);
+  }, [filter, searchTerm]);
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleEscape = (e) => {
       if (e.key === 'Escape') {
-        // Close all forms
-        setShowAddIdea(false);
-        setShowAddRandomThought(false);
-        setShowAddTodo(false);
-        setShowAddPlan(false);
-        // Cancel all edits
-        handleCancelEditTodo();
-        handleCancelEditPlan();
-        // Clear search
-        setSearchTerm("");
+        if (batchMode) {
+          setBatchMode(false);
+          setSelectedTodos([]);
+          setSelectedPlans([]);
+        } else {
+          // Close all forms
+          setShowAddIdea(false);
+          setShowAddRandomThought(false);
+          setShowAddTodo(false);
+          setShowAddPlan(false);
+          // Cancel all edits
+          handleCancelEditTodo();
+          handleCancelEditPlan();
+          // Clear search
+          setSearchTerm("");
+        }
       }
     };
     window.addEventListener('keydown', handleEscape);
     return () => window.removeEventListener('keydown', handleEscape);
-  }, []);
+  }, [batchMode]);
 
   // Compute To-Do progress
   const completedCount = todos.filter((t) => t.completed).length;
@@ -138,8 +163,14 @@ const ListView = ({ initialFilter = "All", setCurrentView }) => {
   const handleAddTodo = (e) => {
     e.preventDefault();
     if (newTodo.trim()) {
-      dispatch(addTodo({ id: Date.now(), text: newTodo, completed: false }));
+      dispatch(addTodo({ 
+        id: Date.now(), 
+        text: newTodo, 
+        completed: false,
+        dueDate: newTodoDueDate || null
+      }));
       setNewTodo("");
+      setNewTodoDueDate("");
       setShowAddTodo(false);
       toast.success("✅ To-do added successfully!");
     }
@@ -148,9 +179,10 @@ const ListView = ({ initialFilter = "All", setCurrentView }) => {
   const handleAddPlan = (e) => {
     e.preventDefault();
     if (newPlanTitle.trim()) {
-      dispatch(addPlan(newPlanTitle, newPlanDesc));
+      dispatch(addPlan(newPlanTitle, newPlanDesc, newPlanDueDate || null));
       setNewPlanTitle("");
       setNewPlanDesc("");
+      setNewPlanDueDate("");
       setShowAddPlan(false);
       toast.success("📅 Plan created successfully!");
     }
@@ -160,13 +192,19 @@ const ListView = ({ initialFilter = "All", setCurrentView }) => {
   const handleEditTodo = (todo) => {
     setEditingTodoId(todo.id);
     setEditTodoText(todo.text);
+    setEditTodoDueDate(todo.dueDate || "");
   };
 
   const handleSaveEditTodo = (id) => {
     if (editTodoText.trim()) {
-      dispatch(editTodo({ id, text: editTodoText }));
+      dispatch(editTodo({ 
+        id, 
+        text: editTodoText,
+        dueDate: editTodoDueDate || null
+      }));
       setEditingTodoId(null);
       setEditTodoText("");
+      setEditTodoDueDate("");
       toast.success("✏️ To-do updated!");
     }
   };
@@ -174,20 +212,28 @@ const ListView = ({ initialFilter = "All", setCurrentView }) => {
   const handleCancelEditTodo = () => {
     setEditingTodoId(null);
     setEditTodoText("");
+    setEditTodoDueDate("");
   };
 
   const handleEditPlan = (plan) => {
     setEditingPlanId(plan.id);
     setEditPlanTitle(plan.title);
     setEditPlanDesc(plan.description || "");
+    setEditPlanDueDate(plan.dueDate || "");
   };
 
   const handleSaveEditPlan = (id) => {
     if (editPlanTitle.trim()) {
-      dispatch(editPlan({ id, title: editPlanTitle, description: editPlanDesc }));
+      dispatch(editPlan({ 
+        id, 
+        title: editPlanTitle, 
+        description: editPlanDesc,
+        dueDate: editPlanDueDate || null
+      }));
       setEditingPlanId(null);
       setEditPlanTitle("");
       setEditPlanDesc("");
+      setEditPlanDueDate("");
       toast.success("✏️ Plan updated!");
     }
   };
@@ -196,6 +242,7 @@ const ListView = ({ initialFilter = "All", setCurrentView }) => {
     setEditingPlanId(null);
     setEditPlanTitle("");
     setEditPlanDesc("");
+    setEditPlanDueDate("");
   };
 
   // Delete confirmation handler
@@ -208,6 +255,103 @@ const ListView = ({ initialFilter = "All", setCurrentView }) => {
       dispatchAction();
       toast.success(`🗑️ ${type.charAt(0).toUpperCase() + type.slice(1)} deleted!`);
     }
+  };
+
+  // Batch selection handlers
+  const toggleTodoSelection = (todoId) => {
+    setSelectedTodos(prev => 
+      prev.includes(todoId) 
+        ? prev.filter(id => id !== todoId)
+        : [...prev, todoId]
+    );
+  };
+
+  const togglePlanSelection = (planId) => {
+    setSelectedPlans(prev => 
+      prev.includes(planId) 
+        ? prev.filter(id => id !== planId)
+        : [...prev, planId]
+    );
+  };
+
+  const selectAllTodos = () => {
+    setSelectedTodos(filteredTodos.map(t => t.id));
+  };
+
+  const selectAllPlans = () => {
+    setSelectedPlans(filteredPlans.map(p => p.id));
+  };
+
+  const deselectAll = () => {
+    setSelectedTodos([]);
+    setSelectedPlans([]);
+  };
+
+  const handleBatchDelete = () => {
+    if (selectedTodos.length === 0 && selectedPlans.length === 0) {
+      toast.error("No items selected!");
+      return;
+    }
+
+    const confirmMsg = `Delete ${selectedTodos.length} todo(s) and ${selectedPlans.length} plan(s)?`;
+    if (window.confirm(confirmMsg)) {
+      if (selectedTodos.length > 0) {
+        dispatch(batchDeleteTodos(selectedTodos));
+      }
+      if (selectedPlans.length > 0) {
+        dispatch(batchDeletePlans(selectedPlans));
+      }
+      toast.success(`🗑️ Deleted ${selectedTodos.length + selectedPlans.length} items!`);
+      setSelectedTodos([]);
+      setSelectedPlans([]);
+      setBatchMode(false);
+    }
+  };
+
+  const handleBatchToggle = () => {
+    if (selectedTodos.length === 0) {
+      toast.error("No todos selected!");
+      return;
+    }
+
+    dispatch(batchToggleTodos(selectedTodos));
+    toast.success(`✅ Toggled ${selectedTodos.length} todo(s)!`);
+    setSelectedTodos([]);
+  };
+
+  // Drag and drop handlers
+  const handleDragStart = (e, todoId) => {
+    setDraggedTodoId(todoId);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDrop = (e, targetTodoId) => {
+    e.preventDefault();
+    
+    if (draggedTodoId === targetTodoId) return;
+
+    const draggedIndex = filteredTodos.findIndex(t => t.id === draggedTodoId);
+    const targetIndex = filteredTodos.findIndex(t => t.id === targetTodoId);
+
+    if (draggedIndex === -1 || targetIndex === -1) return;
+
+    // Create new array with reordered todos
+    const reorderedTodos = [...todos];
+    const [draggedTodo] = reorderedTodos.splice(draggedIndex, 1);
+    reorderedTodos.splice(targetIndex, 0, draggedTodo);
+
+    dispatch(reorderTodos(reorderedTodos));
+    toast.success("📦 Todo reordered!");
+    setDraggedTodoId(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedTodoId(null);
   };
 
   // Show detail view if a plan is selected
@@ -246,6 +390,85 @@ const ListView = ({ initialFilter = "All", setCurrentView }) => {
       <p className="listview-subtitle">
         Your saved ideas, to-dos, and plans — neatly organized.
       </p>
+
+      {/* Batch Mode Toggle */}
+      {(filter === "All" || filter === "To-Dos" || filter === "Plans") && (
+        <div style={{ marginBottom: "20px", display: "flex", gap: "10px", alignItems: "center", justifyContent: "center" }}>
+          <button
+            onClick={() => {
+              setBatchMode(!batchMode);
+              if (batchMode) {
+                setSelectedTodos([]);
+                setSelectedPlans([]);
+              }
+            }}
+            style={{
+              background: batchMode ? "#dc3545" : "#6c757d",
+              color: "white",
+              border: "none",
+              borderRadius: "8px",
+              padding: "10px 20px",
+              cursor: "pointer",
+              fontSize: "14px",
+              fontWeight: "bold"
+            }}
+          >
+            {batchMode ? "✖ Exit Batch Mode" : "☑️ Batch Selection Mode"}
+          </button>
+
+          {batchMode && (
+            <>
+              <span style={{ color: "#666", fontSize: "14px" }}>
+                Selected: {selectedTodos.length + selectedPlans.length} items
+              </span>
+              <button
+                onClick={deselectAll}
+                style={{
+                  background: "#6c757d",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "6px",
+                  padding: "6px 12px",
+                  cursor: "pointer",
+                  fontSize: "12px"
+                }}
+              >
+                Clear Selection
+              </button>
+              {selectedTodos.length > 0 && (
+                <button
+                  onClick={handleBatchToggle}
+                  style={{
+                    background: "#17a2b8",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "6px",
+                    padding: "6px 12px",
+                    cursor: "pointer",
+                    fontSize: "12px"
+                  }}
+                >
+                  Toggle Completed
+                </button>
+              )}
+              <button
+                onClick={handleBatchDelete}
+                style={{
+                  background: "#dc3545",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "6px",
+                  padding: "6px 12px",
+                  cursor: "pointer",
+                  fontSize: "12px"
+                }}
+              >
+                🗑️ Delete Selected
+              </button>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Search Bar */}
       <div style={{ marginBottom: "20px" }}>
@@ -653,6 +876,25 @@ const ListView = ({ initialFilter = "All", setCurrentView }) => {
               )}
             </div>
             
+            {batchMode && (filter === "All" || filter === "To-Dos") && filteredTodos.length > 0 && (
+              <button
+                onClick={selectAllTodos}
+                style={{
+                  width: "100%",
+                  background: "#17a2b8",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "6px",
+                  padding: "8px",
+                  cursor: "pointer",
+                  marginBottom: "10px",
+                  fontSize: "12px"
+                }}
+              >
+                ☑️ Select All Todos
+              </button>
+            )}
+
             {/* Toggle Button */}
             {!showAddTodo ? (
               <button
@@ -675,7 +917,7 @@ const ListView = ({ initialFilter = "All", setCurrentView }) => {
             ) : (
               /* Add Todo Form */
               <form onSubmit={handleAddTodo} style={{ marginBottom: "15px" }}>
-                <div style={{ display: "flex", gap: "8px" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                   <input
                     type="text"
                     placeholder="Add new to-do..."
@@ -683,42 +925,56 @@ const ListView = ({ initialFilter = "All", setCurrentView }) => {
                     onChange={(e) => setNewTodo(e.target.value)}
                     autoFocus
                     style={{
-                      flex: 1,
                       padding: "8px",
                       borderRadius: "4px",
                       border: "1px solid #ddd"
                     }}
                   />
-                  <button
-                    type="submit"
+                  <input
+                    type="date"
+                    value={newTodoDueDate}
+                    onChange={(e) => setNewTodoDueDate(e.target.value)}
                     style={{
-                      background: "#28a745",
-                      color: "white",
-                      border: "none",
+                      padding: "8px",
                       borderRadius: "4px",
-                      padding: "8px 16px",
-                      cursor: "pointer"
+                      border: "1px solid #ddd"
                     }}
-                  >
-                    Add
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowAddTodo(false);
-                      setNewTodo("");
-                    }}
-                    style={{
-                      background: "#6c757d",
-                      color: "white",
-                      border: "none",
-                      borderRadius: "4px",
-                      padding: "8px 16px",
-                      cursor: "pointer"
-                    }}
-                  >
-                    Cancel
-                  </button>
+                  />
+                  <div style={{ display: "flex", gap: "8px" }}>
+                    <button
+                      type="submit"
+                      style={{
+                        flex: 1,
+                        background: "#28a745",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "4px",
+                        padding: "8px 16px",
+                        cursor: "pointer"
+                      }}
+                    >
+                      Add
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowAddTodo(false);
+                        setNewTodo("");
+                        setNewTodoDueDate("");
+                      }}
+                      style={{
+                        flex: 1,
+                        background: "#6c757d",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "4px",
+                        padding: "8px 16px",
+                        cursor: "pointer"
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 </div>
               </form>
             )}
@@ -740,96 +996,148 @@ const ListView = ({ initialFilter = "All", setCurrentView }) => {
               </div>
             ) : (
               filteredTodos.map((todo) => (
-                <div key={todo.id} className="item-card">
+                <div 
+                  key={todo.id} 
+                  className="item-card"
+                  draggable={!batchMode && !editingTodoId}
+                  onDragStart={(e) => handleDragStart(e, todo.id)}
+                  onDragOver={handleDragOver}
+                  onDrop={(e) => handleDrop(e, todo.id)}
+                  onDragEnd={handleDragEnd}
+                  style={{
+                    opacity: draggedTodoId === todo.id ? 0.5 : 1,
+                    cursor: !batchMode && !editingTodoId ? 'grab' : 'default',
+                    border: selectedTodos.includes(todo.id) ? '2px solid #007bff' : 'none'
+                  }}
+                >
+                  {/* Batch Mode Checkbox */}
+                  {batchMode && (
+                    <input
+                      type="checkbox"
+                      checked={selectedTodos.includes(todo.id)}
+                      onChange={() => toggleTodoSelection(todo.id)}
+                      style={{ marginRight: "8px", cursor: "pointer" }}
+                    />
+                  )}
+
                   {/* Edit mode or normal mode */}
                   {editingTodoId === todo.id ? (
                     // EDIT MODE
-                    <div style={{ display: "flex", gap: "8px", flex: 1, alignItems: "center" }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "8px", flex: 1 }}>
                       <input
                         type="text"
                         value={editTodoText}
                         onChange={(e) => setEditTodoText(e.target.value)}
                         autoFocus
                         style={{
-                          flex: 1,
                           padding: "6px",
                           borderRadius: "4px",
                           border: "2px solid #007bff"
                         }}
                       />
-                      <button
-                        onClick={() => handleSaveEditTodo(todo.id)}
+                      <input
+                        type="date"
+                        value={editTodoDueDate}
+                        onChange={(e) => setEditTodoDueDate(e.target.value)}
                         style={{
-                          background: "#28a745",
-                          color: "white",
-                          border: "none",
+                          padding: "6px",
                           borderRadius: "4px",
-                          padding: "4px 12px",
-                          cursor: "pointer"
+                          border: "2px solid #007bff"
                         }}
-                      >
-                        ✓
-                      </button>
-                      <button
-                        onClick={handleCancelEditTodo}
-                        style={{
-                          background: "#6c757d",
-                          color: "white",
-                          border: "none",
-                          borderRadius: "4px",
-                          padding: "4px 12px",
-                          cursor: "pointer"
-                        }}
-                      >
-                        ✖
-                      </button>
+                      />
+                      <div style={{ display: "flex", gap: "8px" }}>
+                        <button
+                          onClick={() => handleSaveEditTodo(todo.id)}
+                          style={{
+                            flex: 1,
+                            background: "#28a745",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "4px",
+                            padding: "4px 12px",
+                            cursor: "pointer"
+                          }}
+                        >
+                          ✓ Save
+                        </button>
+                        <button
+                          onClick={handleCancelEditTodo}
+                          style={{
+                            flex: 1,
+                            background: "#6c757d",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "4px",
+                            padding: "4px 12px",
+                            cursor: "pointer"
+                          }}
+                        >
+                          ✖ Cancel
+                        </button>
+                      </div>
                     </div>
                   ) : (
                     // NORMAL MODE
                     <>
-                      <label className="checkbox-wrapper">
-                        <input 
-                          type="checkbox" 
-                          checked={todo.completed || false} 
-                          onChange={() => {
-                            dispatch(toggleTodo(todo.id));
-                            if (!todo.completed) {
-                              toast.success("✅ To-do completed!");
-                            }
-                          }}
-                        />
-                        <span
-                          className={`todo-text ${
-                            todo.completed ? "completed" : ""
-                          }`}
-                        >
-                          {todo.text}
-                        </span>
-                      </label>
-                      <div>
-                        <button
-                          onClick={() => handleEditTodo(todo)}
-                          style={{
-                            background: "#007bff",
-                            color: "white",
-                            border: "none",
-                            borderRadius: "4px",
-                            padding: "4px 8px",
-                            cursor: "pointer",
-                            marginRight: "4px",
-                            fontSize: "14px"
-                          }}
-                          title="Edit"
-                        >
-                          ✏️
-                        </button>
-                        <button
-                          className="delete-btn"
-                          onClick={() => handleDeleteWithConfirm("todo", todo.id, () => dispatch(removeTodo(todo.id)))}
-                        >
-                          ✖
-                        </button>
+                      <div style={{ flex: 1 }}>
+                        <label className="checkbox-wrapper">
+                          <input 
+                            type="checkbox" 
+                            checked={todo.completed || false} 
+                            onChange={() => {
+                              if (!batchMode) {
+                                dispatch(toggleTodo(todo.id));
+                                if (!todo.completed) {
+                                  toast.success("✅ To-do completed!");
+                                }
+                              }
+                            }}
+                            disabled={batchMode}
+                          />
+                          <span
+                            className={`todo-text ${
+                              todo.completed ? "completed" : ""
+                            }`}
+                          >
+                            {todo.text}
+                          </span>
+                        </label>
+                        {todo.dueDate && (
+                          <div style={{ 
+                            marginTop: "4px", 
+                            fontSize: "11px",
+                            ...getDueDateBadgeStyle(todo.dueDate)
+                          }}>
+                            📅 {formatDate(todo.dueDate)} - {getDueDateBadgeStyle(todo.dueDate)?.label}
+                          </div>
+                        )}
                       </div>
+                      {!batchMode && (
+                        <div>
+                          <button
+                            onClick={() => handleEditTodo(todo)}
+                            style={{
+                              background: "#007bff",
+                              color: "white",
+                              border: "none",
+                              borderRadius: "4px",
+                              padding: "4px 8px",
+                              cursor: "pointer",
+                              marginRight: "4px",
+                              fontSize: "14px"
+                            }}
+                            title="Edit"
+                          >
+                            ✏️
+                          </button>
+                          <button
+                            className="delete-btn"
+                            onClick={() => handleDeleteWithConfirm("todo", todo.id, () => dispatch(removeTodo(todo.id)))}
+                          >
+                            ✖
+                          </button>
+                        </div>
+                      )}
                     </>
                   )}
                 </div>
@@ -843,6 +1151,25 @@ const ListView = ({ initialFilter = "All", setCurrentView }) => {
           <div className="list-card">
             <h3>📅 Plans</h3>
             
+            {batchMode && (filter === "All" || filter === "Plans") && filteredPlans.length > 0 && (
+              <button
+                onClick={selectAllPlans}
+                style={{
+                  width: "100%",
+                  background: "#17a2b8",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "6px",
+                  padding: "8px",
+                  cursor: "pointer",
+                  marginBottom: "10px",
+                  fontSize: "12px"
+                }}
+              >
+                ☑️ Select All Plans
+              </button>
+            )}
+
             {/* Toggle Button */}
             {!showAddPlan ? (
               <button
@@ -889,6 +1216,16 @@ const ListView = ({ initialFilter = "All", setCurrentView }) => {
                       border: "1px solid #ddd"
                     }}
                   />
+                  <input
+                    type="date"
+                    value={newPlanDueDate}
+                    onChange={(e) => setNewPlanDueDate(e.target.value)}
+                    style={{
+                      padding: "8px",
+                      borderRadius: "4px",
+                      border: "1px solid #ddd"
+                    }}
+                  />
                   <div style={{ display: "flex", gap: "8px" }}>
                     <button
                       type="submit"
@@ -910,6 +1247,7 @@ const ListView = ({ initialFilter = "All", setCurrentView }) => {
                         setShowAddPlan(false);
                         setNewPlanTitle("");
                         setNewPlanDesc("");
+                        setNewPlanDueDate("");
                       }}
                       style={{
                         flex: 1,
@@ -950,7 +1288,23 @@ const ListView = ({ initialFilter = "All", setCurrentView }) => {
                 const completedTasks = plan.todos?.filter(t => t.completed).length || 0;
                 
                 return (
-                  <div key={plan.id} className="item-card">
+                  <div 
+                    key={plan.id} 
+                    className="item-card"
+                    style={{
+                      border: selectedPlans.includes(plan.id) ? '2px solid #007bff' : 'none'
+                    }}
+                  >
+                    {/* Batch Mode Checkbox */}
+                    {batchMode && (
+                      <input
+                        type="checkbox"
+                        checked={selectedPlans.includes(plan.id)}
+                        onChange={() => togglePlanSelection(plan.id)}
+                        style={{ marginRight: "8px", cursor: "pointer" }}
+                      />
+                    )}
+
                     {/* Edit mode or normal mode */}
                     {editingPlanId === plan.id ? (
                       // EDIT MODE
@@ -971,6 +1325,16 @@ const ListView = ({ initialFilter = "All", setCurrentView }) => {
                           value={editPlanDesc}
                           onChange={(e) => setEditPlanDesc(e.target.value)}
                           placeholder="Description (optional)..."
+                          style={{
+                            padding: "6px",
+                            borderRadius: "4px",
+                            border: "2px solid #007bff"
+                          }}
+                        />
+                        <input
+                          type="date"
+                          value={editPlanDueDate}
+                          onChange={(e) => setEditPlanDueDate(e.target.value)}
                           style={{
                             padding: "6px",
                             borderRadius: "4px",
@@ -1015,7 +1379,8 @@ const ListView = ({ initialFilter = "All", setCurrentView }) => {
                           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                             <strong
                               className="clickable"
-                              onClick={() => setSelectedPlan(plan.id)}
+                              onClick={() => !batchMode && setSelectedPlan(plan.id)}
+                              style={{ cursor: batchMode ? 'default' : 'pointer' }}
                             >
                               {plan.title}
                             </strong>
@@ -1035,6 +1400,15 @@ const ListView = ({ initialFilter = "All", setCurrentView }) => {
                           <p className="item-desc" style={{ margin: "4px 0" }}>
                             {plan.description || "No description"}
                           </p>
+                          {plan.dueDate && (
+                            <div style={{ 
+                              marginTop: "4px", 
+                              fontSize: "11px",
+                              ...getDueDateBadgeStyle(plan.dueDate)
+                            }}>
+                              📅 {formatDate(plan.dueDate)} - {getDueDateBadgeStyle(plan.dueDate)?.label}
+                            </div>
+                          )}
                           {totalTasks > 0 && (
                             <div style={{ marginTop: "8px" }}>
                               <div style={{
@@ -1061,30 +1435,32 @@ const ListView = ({ initialFilter = "All", setCurrentView }) => {
                             </div>
                           )}
                         </div>
-                        <div>
-                          <button
-                            onClick={() => handleEditPlan(plan)}
-                            style={{
-                              background: "#007bff",
-                              color: "white",
-                              border: "none",
-                              borderRadius: "4px",
-                              padding: "4px 8px",
-                              cursor: "pointer",
-                              marginRight: "4px",
-                              fontSize: "14px"
-                            }}
-                            title="Edit"
-                          >
-                            ✏️
-                          </button>
-                          <button
-                            className="delete-btn"
-                            onClick={() => handleDeleteWithConfirm("plan", plan.id, () => dispatch(removePlan(plan.id)))}
-                          >
-                            ✖
-                          </button>
-                        </div>
+                        {!batchMode && (
+                          <div>
+                            <button
+                              onClick={() => handleEditPlan(plan)}
+                              style={{
+                                background: "#007bff",
+                                color: "white",
+                                border: "none",
+                                borderRadius: "4px",
+                                padding: "4px 8px",
+                                cursor: "pointer",
+                                marginRight: "4px",
+                                fontSize: "14px"
+                              }}
+                              title="Edit"
+                            >
+                              ✏️
+                            </button>
+                            <button
+                              className="delete-btn"
+                              onClick={() => handleDeleteWithConfirm("plan", plan.id, () => dispatch(removePlan(plan.id)))}
+                            >
+                              ✖
+                            </button>
+                          </div>
+                        )}
                       </>
                     )}
                   </div>

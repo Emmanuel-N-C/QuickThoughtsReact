@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
-import { addTodoToPlan, updateTodoStatus } from "../redux/plansSlice";
+import { addTodoToPlan, updateTodoStatus, reorderTodosInPlan } from "../redux/plansSlice";
 import toast from 'react-hot-toast';
 import { calculatePlanProgress } from "../utilities";
 import "./BoardView.css";
@@ -21,19 +21,14 @@ const BoardView = () => {
     [plans, selectedPlanId]
   );
 
-  // Group todos safely by status
+   // Group todos safely by status - SIMPLER VERSION
   const todosByStatus = useMemo(() => {
-    if (!selectedPlan) return { todo: [], inprogress: [], done: [] };
-
-    const withStatus = selectedPlan.todos.map((t) => ({
-      ...t,
-      status: t.status || "todo",
-    }));
+    if (!selectedPlan || !selectedPlan.todos) return { todo: [], inprogress: [], done: [] };
 
     return {
-      todo: withStatus.filter((t) => t.status === "todo"),
-      inprogress: withStatus.filter((t) => t.status === "inprogress"),
-      done: withStatus.filter((t) => t.status === "done"),
+      todo: selectedPlan.todos.filter((t) => (t.status || "todo") === "todo"),
+      inprogress: selectedPlan.todos.filter((t) => (t.status || "todo") === "inprogress"),
+      done: selectedPlan.todos.filter((t) => (t.status || "todo") === "done"),
     };
   }, [selectedPlan]);
 
@@ -48,23 +43,33 @@ const BoardView = () => {
     if (!result.destination) return;
 
     const { draggableId, destination, source } = result;
-    const newStatus = destination.droppableId;
+    const sourceStatus = source.droppableId;
+    const destinationStatus = destination.droppableId;
 
-    // Only show toast if status actually changed
-    if (source.droppableId !== newStatus) {
-      dispatch(
-        updateTodoStatus({
-          planId: selectedPlanId,
-          todoId: draggableId,
-          status: newStatus,
-        })
-      );
+    // Use the new reorderTodosInPlan action for both reordering and status changes
+    dispatch(
+      reorderTodosInPlan({
+        planId: selectedPlanId,
+        todoId: draggableId,
+        sourceIndex: source.index,
+        destinationIndex: destination.index,
+        sourceStatus: sourceStatus,
+        destinationStatus: destinationStatus,
+      })
+    );
 
-      if (newStatus === "done") {
+    // Show appropriate toast based on the action
+    if (sourceStatus !== destinationStatus) {
+      if (destinationStatus === "done") {
         toast.success("✅ Task completed!");
-      } else if (newStatus === "inprogress") {
+      } else if (destinationStatus === "inprogress") {
         toast("🚧 Task moved to In Progress");
+      } else if (destinationStatus === "todo") {
+        toast("📝 Task moved to To Do");
       }
+    } else {
+      // Just reordered within the same column
+      toast.success("📦 Task reordered!");
     }
   };
 
@@ -185,7 +190,7 @@ const BoardView = () => {
       {/* Main Board */}
       <main className="board-main">
         <h2>📋 Board View</h2>
-        <p>Drag and drop your tasks between stages.</p>
+        <p>Drag and drop your tasks between stages and reorder within columns.</p>
 
         {selectedPlan ? (
           <>
@@ -294,6 +299,15 @@ const BoardView = () => {
                                     </span>
                                   )}
                                   {todo.text}
+                                  {/* Optional: Show drag handle indicator */}
+                                  <span style={{ 
+                                    float: "right", 
+                                    color: "#ccc", 
+                                    fontSize: "12px",
+                                    userSelect: "none"
+                                  }}>
+                                    ⋮⋮
+                                  </span>
                                 </div>
                               )}
                             </Draggable>

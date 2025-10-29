@@ -69,3 +69,74 @@ export const getPlanStats = (plan) => {
   
   return { total, completed, percentage };
 };
+
+/**
+ * Format a date for display
+ */
+export const formatDate = (dateString) => {
+  if (!dateString) return null;
+  
+  try {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric', 
+      year: 'numeric' 
+    });
+  } catch (error) {
+    return "Invalid date";
+  }
+};
+
+/**
+ * Check if a date is overdue
+ */
+export const isOverdue = (dateString) => {
+  if (!dateString) return false;
+  
+  try {
+    const dueDate = new Date(dateString);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return dueDate < today;
+  } catch (error) {
+    return false;
+  }
+};
+
+/**
+ * Check if a date is due soon (within 3 days)
+ */
+export const isDueSoon = (dateString) => {
+  if (!dateString) return false;
+  
+  try {
+    const dueDate = new Date(dateString);
+    const today = new Date();
+    const threeDaysFromNow = new Date();
+    threeDaysFromNow.setDate(today.getDate() + 3);
+    
+    today.setHours(0, 0, 0, 0);
+    dueDate.setHours(0, 0, 0, 0);
+    threeDaysFromNow.setHours(0, 0, 0, 0);
+    
+    return dueDate >= today && dueDate <= threeDaysFromNow;
+  } catch (error) {
+    return false;
+  }
+};
+
+/**
+ * Get due date badge styling
+ */
+export const getDueDateBadgeStyle = (dateString) => {
+  if (!dateString) return null;
+  
+  if (isOverdue(dateString)) {
+    return { background: '#dc3545', color: 'white', label: '🔴 Overdue' };
+  } else if (isDueSoon(dateString)) {
+    return { background: '#ffc107', color: '#000', label: '⚠️ Due Soon' };
+  } else {
+    return { background: '#28a745', color: 'white', label: '✅ On Track' };
+  }
+};

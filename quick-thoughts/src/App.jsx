@@ -9,10 +9,30 @@ import ProgressPanel from "./ProgressPanel";
 import "./App.css";
 
 const App = () => {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [isProgressOpen, setIsProgressOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth >= 1024);
+  const [isProgressOpen, setIsProgressOpen] = useState(window.innerWidth >= 1280);
   const [currentView, setCurrentView] = useState("overview");
   const [listFilter, setListFilter] = useState("All");
+
+  // Handle window resize
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) {
+        setIsSidebarOpen(true);
+      } else {
+        setIsSidebarOpen(false);
+      }
+
+      if (window.innerWidth >= 1280) {
+        setIsProgressOpen(true);
+      } else {
+        setIsProgressOpen(false);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Wrapper function to handle sidebar navigation
   const handleSidebarNavigation = (view) => {
@@ -52,8 +72,8 @@ const App = () => {
         e.preventDefault();
         setIsSidebarOpen(!isSidebarOpen);
       }
-      // Cmd/Ctrl + P: Toggle Progress Panel
-      if ((e.metaKey || e.ctrlKey) && e.key === 'p') {
+      // Cmd/Ctrl + P: Toggle Progress Panel (only on desktop)
+      if ((e.metaKey || e.ctrlKey) && e.key === 'p' && window.innerWidth >= 1024) {
         e.preventDefault();
         setIsProgressOpen(!isProgressOpen);
       }
@@ -90,14 +110,16 @@ const App = () => {
         <span></span>
       </button>
 
-      {/* Progress Panel Toggle (Right side) */}
-      <button
-        className="progress-toggle-btn"
-        onClick={() => setIsProgressOpen(!isProgressOpen)}
-        title="Toggle Progress Panel"
-      >
-        {isProgressOpen ? "›" : "‹"}
-      </button>
+      {/* Progress Panel Toggle (Right side) - Hidden on mobile */}
+      {window.innerWidth >= 1024 && (
+        <button
+          className="progress-toggle-btn"
+          onClick={() => setIsProgressOpen(!isProgressOpen)}
+          title="Toggle Progress Panel"
+        >
+          {isProgressOpen ? "›" : "‹"}
+        </button>
+      )}
 
       {/* Sidebar */}
       <Sidebar
@@ -108,12 +130,14 @@ const App = () => {
       />
 
       {/* Main Content */}
-      <div className={`main-content ${isSidebarOpen ? 'sidebar-open' : ''} ${isProgressOpen ? 'progress-open' : ''}`}>
+      <div className={`main-content ${isSidebarOpen && window.innerWidth >= 1024 ? 'sidebar-open' : ''} ${isProgressOpen && window.innerWidth >= 1280 ? 'progress-open' : ''}`}>
         {renderView()}
       </div>
 
-      {/* Progress Panel (Right side) */}
-      <ProgressPanel isOpen={isProgressOpen} />
+      {/* Progress Panel (Right side) - Hidden on mobile */}
+      {window.innerWidth >= 1024 && (
+        <ProgressPanel isOpen={isProgressOpen} />
+      )}
 
       {/* Overlay for mobile */}
       {isSidebarOpen && window.innerWidth < 1024 && (

@@ -8,7 +8,7 @@
   backdrop-filter: blur(20px);
   box-shadow: 2px 0 20px rgba(0, 0, 0, 0.1);
   transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  z-index: 1000; /* Lower than hamburger button */
+  z-index: 1000; 
   display: flex;
   flex-direction: column;
   overflow-y: auto;
@@ -18,7 +18,7 @@
   left: 0;
 }
 
-/* Rest of your existing Sidebar.css stays the same... */
+
 
 .sidebar-header {
   padding: 24px 20px;
